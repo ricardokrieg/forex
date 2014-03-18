@@ -2,7 +2,7 @@ string Indicator_Name = "CSM Dashboard";
 int objs = 0;
 
 #property indicator_separate_window
-#property indicator_buffers 11
+#property indicator_buffers 120
 
 //------------------------------------------------------------------------------
 
@@ -86,11 +86,14 @@ extern bool AlertAfterCross = False;
 
 class Chart {
     public:
-        Chart(int s, int f) {
+        Chart(int i, int s, int f) {
+            this.index = i*12;
             this.slow = s;
             this.fast = f;
         }
 
+        Currency *currencies[11]
+        int index;
         int slow;
         int fast;
 };
@@ -207,39 +210,39 @@ int init() {
     IndicatorShortName(Indicator_Name);
 
     if (Enable_M1) {
-        Chart *chart = new Chart(m1_slow, m1_fast);
+        Chart *chart = new Chart(charts_index, m1_slow, m1_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_M5) {
-        Chart *chart = new Chart(m5_slow, m5_fast);
+        Chart *chart = new Chart(charts_index, m5_slow, m5_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_M15) {
-        Chart *chart = new Chart(m15_slow, m15_fast);
+        Chart *chart = new Chart(charts_index, m15_slow, m15_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_M30) {
-        Chart *chart = new Chart(m30_slow, m30_fast);
+        Chart *chart = new Chart(charts_index, m30_slow, m30_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_H1) {
-        Chart *chart = new Chart(h1_slow, h1_fast);
+        Chart *chart = new Chart(charts_index, h1_slow, h1_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_H4) {
-        Chart *chart = new Chart(h4_slow, h4_fast);
+        Chart *chart = new Chart(charts_index, h4_slow, h4_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_D1) {
-        Chart *chart = new Chart(d1_slow, d1_fast);
+        Chart *chart = new Chart(charts_index, d1_slow, d1_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_W1) {
-        Chart *chart = new Chart(w1_slow, w1_fast);
+        Chart *chart = new Chart(charts_index, w1_slow, w1_fast);
         charts[charts_index++] = chart;
     }
     if (Enable_MN) {
-        Chart *chart = new Chart(mn_slow, mn_fast);
+        Chart *chart = new Chart(charts_index, mn_slow, mn_fast);
         charts[charts_index++] = chart;
     }
 
@@ -247,6 +250,8 @@ int init() {
     int d_x = 35;
 
     if (USD) {
+        // TODO
+        // loop through all charts and add a instance of currency to chart.currencies
         Currency *currency = new Currency(currencies_index, "USD", Color_USD, false);
         currencies[currencies_index++] = currency;
 
