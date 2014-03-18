@@ -9,6 +9,16 @@ int objs = 0;
 extern int MA_Method = 2;
 extern int Price = 3;
 
+extern bool Enable_M1 = false;
+extern bool Enable_M5 = true;
+extern bool Enable_M15 = true;
+extern bool Enable_M30 = true;
+extern bool Enable_H1 = true;
+extern bool Enable_H4 = false;
+extern bool Enable_D1 = false;
+extern bool Enable_W1 = false;
+extern bool Enable_MN = false;
+
 extern bool USD = 1;
 extern bool EUR = 1;
 extern bool GBP = 1;
@@ -40,37 +50,50 @@ extern int IDX_Line_Thickness = 3;
 extern int All_Bars = 0;
 extern int Last_Bars = 0;
 
-// for monthly
-extern int mn_per = 12;
+// MN
+extern int mn_slow = 12;
 extern int mn_fast = 3;
-// for weekly
-extern int w_per = 9;
-extern int w_fast = 3;
-// for daily
-extern int d_per = 5;
-extern int d_fast = 3;
-// for H4
-extern int h4_per = 18;
+// W1
+extern int w1_slow = 9;
+extern int w1_fast = 3;
+// D1
+extern int d1_slow = 5;
+extern int d1_fast = 3;
+// H4
+extern int h4_slow = 18;
 extern int h4_fast = 6;
-// for H1
-extern int h1_per = 24;
+// H1
+extern int h1_slow = 24;
 extern int h1_fast = 6;
-// for M30
-extern int m30_per = 25;
+// M30
+extern int m30_slow = 25;
 extern int m30_fast = 3;
-// for M15
-extern int m15_per = 25;
+// M15
+extern int m15_slow = 25;
 extern int m15_fast = 3;
-// for M5
-extern int m5_per = 25;
+// M5
+extern int m5_slow = 25;
 extern int m5_fast = 3;
-// for M1
-extern int m1_per = 25;
+// M1
+extern int m1_slow = 25;
 extern int m1_fast = 3;
 
 extern bool Use_Alert = False;
 extern bool EMail_Signals = False;
 extern bool AlertAfterCross = False;
+
+//------------------------------------------------------------------------------
+
+class Chart {
+    public:
+        Chart(int s, int f) {
+            this.slow = s;
+            this.fast = f;
+        }
+
+        int slow;
+        int fast;
+};
 
 //------------------------------------------------------------------------------
 
@@ -175,10 +198,50 @@ int current_bars, current_bars_1;
 Currency *currencies[20];
 int currencies_index = 0;
 
+Chart *charts[9];
+int charts_index = 0;
+
 //------------------------------------------------------------------------------
 
 int init() {
     IndicatorShortName(Indicator_Name);
+
+    if (Enable_M1) {
+        Chart *chart = new Chart(m1_slow, m1_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_M5) {
+        Chart *chart = new Chart(m5_slow, m5_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_M15) {
+        Chart *chart = new Chart(m15_slow, m15_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_M30) {
+        Chart *chart = new Chart(m30_slow, m30_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_H1) {
+        Chart *chart = new Chart(h1_slow, h1_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_H4) {
+        Chart *chart = new Chart(h4_slow, h4_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_D1) {
+        Chart *chart = new Chart(d1_slow, d1_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_W1) {
+        Chart *chart = new Chart(w1_slow, w1_fast);
+        charts[charts_index++] = chart;
+    }
+    if (Enable_MN) {
+        Chart *chart = new Chart(mn_slow, mn_fast);
+        charts[charts_index++] = chart;
+    }
 
     int pos_x = 20;
     int d_x = 35;
@@ -285,88 +348,80 @@ int start() {
     if (counted_bars > 0) counted_bars--;
     limit = Bars - counted_bars;
 
-    int slow, fast;
-    switch(Period()) {
-        case 1:     slow = m1_per;  fast = m1_fast;  break;
-        case 5:     slow = m5_per;  fast = m5_fast;  break;
-        case 15:    slow = m15_per; fast = m15_fast; break;
-        case 30:    slow = m30_per; fast = m30_fast; break;
-        case 60:    slow = h1_per;  fast = h1_fast;  break;
-        case 240:   slow = h4_per;  fast = h4_fast;  break;
-        case 1440:  slow = d_per;   fast = d_fast;   break;
-        case 10080: slow = w_per;   fast = w_fast;   break;
-        case 43200: slow = mn_per;  fast = mn_fast;  break;
-    }
+    for (int ch_i = 0; ch_i < charts_index; ch_i++) {
+        int slow = charts[ch_i].slow;
+        int fast = charts[ch_i].fast;
 
-    bool run = true;
-    for (int i = 0; i < limit; i++) {
-        for (int ma_cci = 0; ma_cci < currencies_index; ma_cci++) {
-            if (!currencies[ma_cci].is_USD()) {
-                run = currencies[ma_cci].calculate_ma(slow, fast, i);
+        bool run = true;
+        for (int i = 0; i < limit; i++) {
+            for (int ma_cci = 0; ma_cci < currencies_index; ma_cci++) {
+                if (!currencies[ma_cci].is_USD()) {
+                    run = currencies[ma_cci].calculate_ma(slow, fast, i);
 
-                if (!run) break;
-            }
-        }
-        if (!run) break;
-
-        for (int ci = 0; ci < currencies_index; ci++) {
-            if (currencies[ci].is_USD()) {
-                currencies[ci].array[i] = 0;
-
-                for (int u_cci = 0; u_cci < currencies_index; u_cci++) {
-                    if (currencies[ci].name != currencies[u_cci].name) {
-                        double diff = (currencies[u_cci].inverse || currencies[u_cci].is_metal()) ? (currencies[u_cci].fast - currencies[u_cci].slow) : (currencies[u_cci].slow - currencies[u_cci].fast);
-
-                        currencies[ci].array[i] += diff;
-                    }
+                    if (!run) break;
                 }
-            } else if (currencies[ci].is_metal()) {
-                currencies[ci].array[i] = 0;
+            }
+            if (!run) break;
 
-                for (int m_cci = 0; m_cci < currencies_index; m_cci++) {
-                    if (currencies[ci].name != currencies[m_cci].name) {
-                        if (currencies[m_cci].is_USD()) {
-                            currencies[ci].array[i] += currencies[ci].slow - currencies[ci].fast;
-                        } else {
-                            if (currencies[m_cci].inverse || currencies[m_cci].is_metal()) {
-                                currencies[ci].array[i] += currencies[m_cci].fast - currencies[m_cci].slow;
+            for (int ci = 0; ci < currencies_index; ci++) {
+                if (currencies[ci].is_USD()) {
+                    currencies[ci].array[i] = 0;
+
+                    for (int u_cci = 0; u_cci < currencies_index; u_cci++) {
+                        if (currencies[ci].name != currencies[u_cci].name) {
+                            double diff = (currencies[u_cci].inverse || currencies[u_cci].is_metal()) ? (currencies[u_cci].fast - currencies[u_cci].slow) : (currencies[u_cci].slow - currencies[u_cci].fast);
+
+                            currencies[ci].array[i] += diff;
+                        }
+                    }
+                } else if (currencies[ci].is_metal()) {
+                    currencies[ci].array[i] = 0;
+
+                    for (int m_cci = 0; m_cci < currencies_index; m_cci++) {
+                        if (currencies[ci].name != currencies[m_cci].name) {
+                            if (currencies[m_cci].is_USD()) {
+                                currencies[ci].array[i] += currencies[ci].slow - currencies[ci].fast;
                             } else {
-                                currencies[ci].array[i] += currencies[m_cci].slow - currencies[m_cci].fast;
+                                if (currencies[m_cci].inverse || currencies[m_cci].is_metal()) {
+                                    currencies[ci].array[i] += currencies[m_cci].fast - currencies[m_cci].slow;
+                                } else {
+                                    currencies[ci].array[i] += currencies[m_cci].slow - currencies[m_cci].fast;
+                                }
                             }
                         }
                     }
-                }
-            } else {
-                currencies[ci].array[i] = 0;
+                } else {
+                    currencies[ci].array[i] = 0;
 
-                for (int cci = 0; cci < currencies_index; cci++) {
-                    if (currencies[ci].name != currencies[cci].name) {
-                        if (currencies[cci].is_USD() || currencies[cci].is_metal()) {
-                            if (currencies[ci].inverse) {
-                                currencies[ci].array[i] += currencies[ci].slow - currencies[ci].fast;
-                            } else {
-                                currencies[ci].array[i] += currencies[ci].fast - currencies[ci].slow;
-                            }
-                        } else {
-                            if (currencies[ci].inverse) {
-                                if (currencies[ci].has_priority(currencies[cci])) {
-                                    currencies[ci].array[i] += (currencies[cci].fast/currencies[ci].fast) - (currencies[cci].slow/currencies[ci].slow);
+                    for (int cci = 0; cci < currencies_index; cci++) {
+                        if (currencies[ci].name != currencies[cci].name) {
+                            if (currencies[cci].is_USD() || currencies[cci].is_metal()) {
+                                if (currencies[ci].inverse) {
+                                    currencies[ci].array[i] += currencies[ci].slow - currencies[ci].fast;
                                 } else {
-                                    if (currencies[cci].inverse) {
-                                        currencies[ci].array[i] += (currencies[ci].slow/currencies[cci].slow) - (currencies[ci].fast/currencies[cci].fast);
-                                    } else {
-                                        currencies[ci].array[i] += (currencies[cci].slow*currencies[ci].slow) - (currencies[cci].fast*currencies[ci].fast);
-                                    }
+                                    currencies[ci].array[i] += currencies[ci].fast - currencies[ci].slow;
                                 }
                             } else {
-                                if (currencies[ci].has_priority(currencies[cci])) {
-                                    if (currencies[cci].inverse) {
-                                        currencies[ci].array[i] += (currencies[ci].fast*currencies[cci].fast) - (currencies[ci].slow*currencies[cci].slow);
+                                if (currencies[ci].inverse) {
+                                    if (currencies[ci].has_priority(currencies[cci])) {
+                                        currencies[ci].array[i] += (currencies[cci].fast/currencies[ci].fast) - (currencies[cci].slow/currencies[ci].slow);
                                     } else {
-                                        currencies[ci].array[i] += (currencies[ci].fast/currencies[cci].fast) - (currencies[ci].slow/currencies[cci].slow);
+                                        if (currencies[cci].inverse) {
+                                            currencies[ci].array[i] += (currencies[ci].slow/currencies[cci].slow) - (currencies[ci].fast/currencies[cci].fast);
+                                        } else {
+                                            currencies[ci].array[i] += (currencies[cci].slow*currencies[ci].slow) - (currencies[cci].fast*currencies[ci].fast);
+                                        }
                                     }
                                 } else {
-                                    currencies[ci].array[i] += (currencies[cci].slow/currencies[ci].slow) - (currencies[cci].fast/currencies[ci].fast);
+                                    if (currencies[ci].has_priority(currencies[cci])) {
+                                        if (currencies[cci].inverse) {
+                                            currencies[ci].array[i] += (currencies[ci].fast*currencies[cci].fast) - (currencies[ci].slow*currencies[cci].slow);
+                                        } else {
+                                            currencies[ci].array[i] += (currencies[ci].fast/currencies[cci].fast) - (currencies[ci].slow/currencies[cci].slow);
+                                        }
+                                    } else {
+                                        currencies[ci].array[i] += (currencies[cci].slow/currencies[ci].slow) - (currencies[cci].fast/currencies[ci].fast);
+                                    }
                                 }
                             }
                         }
