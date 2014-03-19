@@ -8,10 +8,10 @@ extern int MA_Method = 2;
 extern int Price = 3;
 
 extern bool Enable_M1 = true;
-extern bool Enable_M5 = true;
+extern bool Enable_M5 = false;
 extern bool Enable_M15 = false;
 extern bool Enable_M30 = false;
-extern bool Enable_H1 = false;
+extern bool Enable_H1 = true;
 extern bool Enable_H4 = false;
 extern bool Enable_D1 = false;
 extern bool Enable_W1 = false;
@@ -19,8 +19,8 @@ extern bool Enable_MN = false;
 
 extern bool USD = true;
 extern bool EUR = true;
-extern bool GBP = false;
-extern bool CHF = false;
+extern bool GBP = true;
+extern bool CHF = true;
 extern bool JPY = false;
 extern bool AUD = false;
 extern bool CAD = false;
@@ -60,6 +60,15 @@ extern int m5_fast = 3;
 extern int m1_slow = 25;
 extern int m1_fast = 3;
 
+extern int Corner = 0;
+extern int X = 100;
+extern int Y = 100;
+
+//------------------------------------------------------------------------------
+
+int charts_index = 0;
+int currencies_index = 0;
+
 //------------------------------------------------------------------------------
 
 class Currency {
@@ -72,20 +81,6 @@ class Currency {
             this.pip_division = 1;
 
             this.set_priority();
-        }
-
-        void draw_label(int pos_x) {
-            int window = WindowFind(Indicator_Name);
-            string ID = Indicator_Name + objs;
-
-            Print("ID:", ID);
-            objs++;
-
-            if (ObjectCreate(ID, OBJ_LABEL, window, 0, 0)) {
-                ObjectSet(ID, OBJPROP_XDISTANCE, pos_x + 35);
-                ObjectSet(ID, OBJPROP_YDISTANCE, 20);
-                ObjectSetText(ID, this.name, 8, "Arial Black", this.col);
-            }
         }
 
         bool calculate_ma(int tf, int slow_period, int fast_period, int i) {
@@ -136,7 +131,6 @@ class Currency {
             return(this.priority < currency.priority);
         }
 
-        int index;
         string name;
         double array[];
         color col;
@@ -159,6 +153,46 @@ class Chart {
             this.fast = f;
         }
 
+        Currency *strongest_currency(void) {
+            Currency *currency = this.currencies[0];
+            double value = currency.array[ArraySize(currency.array)-1];
+
+            double max = value;
+            Currency *max_currency = currency;
+
+            for (int i = 1; i < currencies_index; i++) {
+                currency = this.currencies[i];
+                value = currency.array[ArraySize(currency.array)-1];
+
+                if (value > max) {
+                    max = value;
+                    max_currency = currency;
+                }
+            }
+
+            return max_currency;
+        }
+
+        Currency *weakest_currency(void) {
+            Currency *currency = this.currencies[0];
+            double value = currency.array[ArraySize(currency.array)-1];
+
+            double min = value;
+            Currency *min_currency = currency;
+
+            for (int i = 1; i < currencies_index; i++) {
+                currency = this.currencies[i];
+                value = currency.array[ArraySize(currency.array)-1];
+
+                if (value < min) {
+                    min = value;
+                    min_currency = currency;
+                }
+            }
+
+            return min_currency;
+        }
+
         Currency *currencies[11];
         int timeframe;
         int index;
@@ -169,9 +203,6 @@ class Chart {
 //------------------------------------------------------------------------------
 
 Chart *charts[9];
-
-int charts_index = 0;
-int currencies_index = 0;
 
 //------------------------------------------------------------------------------
 
@@ -401,8 +432,17 @@ int start() {
                         }
                     }
                 }
+
+                // Print(current_currency.name, "  -  ", current_currency.array[ArraySize(current_currency.array)-1]);
+                // Print(current_currency.name, "  -  ", current_currency.array[0]);
+                // Print(current_currency.name, "  -  ", current_currency.array[limit-1]);
+                Print(current_currency.name, "  -  ", current_currency.array[i]);
             }
         }
+
+        // Print("Chart: ", current_chart.timeframe);
+        // Print("            Strong: ", current_chart.strongest_currency().name);
+        // Print("              Weak: ", current_chart.weakest_currency().name);
     }
 
     return(0);
