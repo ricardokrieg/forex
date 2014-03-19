@@ -1,35 +1,26 @@
-string Indicator_Name = "CSM Dashboard";
-int objs = 0;
+string Indicator_Name = "CSM Chart";
 
 #property indicator_separate_window
-#property indicator_buffers 100
+#property indicator_buffers 11
 
 //------------------------------------------------------------------------------
 
 extern int MA_Method = 2;
 extern int Price = 3;
 
-extern bool Enable_M1 = true;
-extern bool Enable_M5 = true;
-extern bool Enable_M15 = false;
-extern bool Enable_M30 = false;
-extern bool Enable_H1 = false;
-extern bool Enable_H4 = false;
-extern bool Enable_D1 = false;
-extern bool Enable_W1 = false;
-extern bool Enable_MN = false;
+extern string Timeframe = "M1";
 
 extern bool USD = true;
 extern bool EUR = true;
-extern bool GBP = false;
-extern bool CHF = false;
-extern bool JPY = false;
-extern bool AUD = false;
-extern bool CAD = false;
-extern bool NZD = false;
-extern bool USDIX = false;
-extern bool GOLD = false;
-extern bool SILVER = false;
+extern bool GBP = true;
+extern bool CHF = true;
+extern bool JPY = true;
+extern bool AUD = true;
+extern bool CAD = true;
+extern bool NZD = true;
+extern bool USDIX = true;
+extern bool GOLD = true;
+extern bool SILVER = true;
 
 extern color Color_USD = White;
 extern color Color_EUR = DodgerBlue;
@@ -44,11 +35,6 @@ extern color Color_GOLD = RosyBrown;
 extern color Color_SILVER = Khaki;
 
 extern int Line_Thickness = 3;
-extern int Thin_Line_Thickness = 1;
-extern int IDX_Line_Thickness = 3;
-
-extern int All_Bars = 0;
-extern int Last_Bars = 0;
 
 extern int mn_slow = 12;
 extern int mn_fast = 3;
@@ -69,9 +55,8 @@ extern int m5_fast = 3;
 extern int m1_slow = 25;
 extern int m1_fast = 3;
 
-extern bool Use_Alert = False;
-extern bool EMail_Signals = False;
-extern bool AlertAfterCross = False;
+extern int PosX = 10;
+extern int PosY = 20;
 
 //------------------------------------------------------------------------------
 
@@ -97,14 +82,14 @@ class Currency {
             objs++;
 
             if (ObjectCreate(ID, OBJ_LABEL, window, 0, 0)) {
-                ObjectSet(ID, OBJPROP_XDISTANCE, pos_x + 35);
-                ObjectSet(ID, OBJPROP_YDISTANCE, 20);
+                ObjectSet(ID, OBJPROP_XDISTANCE, pos_x);
+                ObjectSet(ID, OBJPROP_YDISTANCE, PosY);
                 ObjectSetText(ID, this.name, 8, "Arial Black", this.col);
             }
         }
 
         void configure_array(void) {
-            SetIndexStyle(this.index, DRAW_LINE, DRAW_LINE, width_for(this.name), this.col);
+            SetIndexStyle(this.index, DRAW_LINE, DRAW_LINE, Line_Thickness, this.col);
             SetIndexBuffer(this.index, this.array);
             SetIndexLabel(this.index, this.name);
         }
@@ -171,224 +156,146 @@ class Currency {
 
 //------------------------------------------------------------------------------
 
-class Chart {
-    public:
-        Chart(int i, int tf, int s, int f) {
-            this.index = i*11;
-            this.timeframe = tf;
-            this.slow = s;
-            this.fast = f;
-        }
-
-        Currency *currencies[11];
-        int timeframe;
-        int index;
-        int slow;
-        int fast;
-};
-
-//------------------------------------------------------------------------------
-
-int current_bars, current_bars_1;
-
-Chart *charts[9];
-
-int charts_index = 0;
+Currency *currencies[11];
 int currencies_index = 0;
+
+int timeframe = 1;
+int slow = m1_slow;
+int fast = m1_fast;
+int objs = 0;
 
 //------------------------------------------------------------------------------
 
 int init() {
     IndicatorShortName(Indicator_Name);
 
-    if (Enable_M1) {
-        Chart *chart = new Chart(charts_index, 1, m1_slow, m1_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_M5) {
-        Chart *chart = new Chart(charts_index, 5, m5_slow, m5_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_M15) {
-        Chart *chart = new Chart(charts_index, 15, m15_slow, m15_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_M30) {
-        Chart *chart = new Chart(charts_index, 30, m30_slow, m30_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_H1) {
-        Chart *chart = new Chart(charts_index, 60, h1_slow, h1_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_H4) {
-        Chart *chart = new Chart(charts_index, 240, h4_slow, h4_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_D1) {
-        Chart *chart = new Chart(charts_index, 1440, d1_slow, d1_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_W1) {
-        Chart *chart = new Chart(charts_index, 10080, w1_slow, w1_fast);
-        charts[charts_index++] = chart;
-    }
-    if (Enable_MN) {
-        Chart *chart = new Chart(charts_index, 43200, mn_slow, mn_fast);
-        charts[charts_index++] = chart;
+    int window = WindowFind(Indicator_Name);
+    string ID = Indicator_Name + objs;
+    objs++;
+    if (ObjectCreate(ID, OBJ_LABEL, window, 0, 0)) {
+        ObjectSet(ID, OBJPROP_XDISTANCE, 10);
+        ObjectSet(ID, OBJPROP_YDISTANCE, 40);
+        ObjectSetText(ID, Timeframe, 10, "Arial Black", White);
     }
 
-    // int pos_x = 20;
-    // int d_x = 35;
+    if (StringCompare(Timeframe, "M1") == 0 ) {
+        timeframe = 1;
+        slow = m1_slow; fast = m1_fast;
+    } else if (StringCompare(Timeframe, "M5") == 0 ) {
+        timeframe = 5;
+        slow = m5_slow; fast = m5_fast;
+    } else if (StringCompare(Timeframe, "M15") == 0 ) {
+        timeframe = 15;
+        slow = m15_slow;fast = m15_fast;
+    } else if (StringCompare(Timeframe, "M30") == 0 ) {
+        timeframe = 30;
+        slow = m30_slow;fast = m30_fast;
+    } else if (StringCompare(Timeframe, "H1") == 0 ) {
+        timeframe = 60;
+        slow = h1_slow; fast = h1_fast;
+    } else if (StringCompare(Timeframe, "H4") == 0 ) {
+        timeframe = 240;
+        slow = h4_slow; fast = h4_fast;
+    } else if (StringCompare(Timeframe, "D1") == 0 ) {
+        timeframe = 1440;
+        slow = d1_slow; fast = d1_fast;
+    } else if (StringCompare(Timeframe, "W1") == 0 ) {
+        timeframe = 10080;
+        slow = w1_slow; fast = w1_fast;
+    } else if (StringCompare(Timeframe, "MN") == 0 ) {
+        timeframe = 43200;
+        slow = mn_slow; fast = mn_fast;
+    }
 
-    int i;
+    int pos_x = PosX;
+    int d_x = 40;
 
     if (USD) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "USD", Color_USD, false);
-            // Currency *currency = new Currency(currencies_index, "USD", Color_USD, false);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "USD", Color_USD, false);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (EUR) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "EUR", Color_EUR, false);
-            // Currency *currency = new Currency(currencies_index, "EUR", Color_EUR, false);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "EUR", Color_EUR, false);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (GBP) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "GBP", Color_GBP, false);
-            // Currency *currency = new Currency(currencies_index, "GBP", Color_GBP, false);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "GBP", Color_GBP, false);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (CHF) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "CHF", Color_CHF, true);
-            // Currency *currency = new Currency(currencies_index, "CHF", Color_CHF, true);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "CHF", Color_CHF, true);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (AUD) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "AUD", Color_AUD, false);
-            // Currency *currency = new Currency(currencies_index, "AUD", Color_AUD, false);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "AUD", Color_AUD, false);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (CAD) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "CAD", Color_CAD, true);
-            // Currency *currency = new Currency(currencies_index, "CAD", Color_CAD, true);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "CAD", Color_CAD, true);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (JPY) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "JPY", Color_JPY, true);
-            // Currency *currency = new Currency(currencies_index, "JPY", Color_JPY, true);
-            currency.pip_division = 100;
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "JPY", Color_JPY, true);
+        currency.pip_division = 100;
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (NZD) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "NZD", Color_NZD, false);
-            // Currency *currency = new Currency(currencies_index, "NZD", Color_NZD, false);
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "NZD", Color_NZD, false);
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (USDIX) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "USDIX", Color_USDIX, true);
-            // Currency *currency = new Currency(currencies_index, "USDIX", Color_USDIX, true);
-            currency.metal = true;
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "USDIX", Color_USDIX, true);
+        currency.metal = true;
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (GOLD) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "GOLD", Color_GOLD, true);
-            // Currency *currency = new Currency(currencies_index, "GOLD", Color_GOLD, true);
-            currency.metal = true;
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "GOLD", Color_GOLD, true);
+        currency.metal = true;
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
     if (SILVER) {
-        for (i = 0; i < charts_index; i++) {
-            Currency *currency = new Currency(charts[i].index+currencies_index, "SILVER", Color_SILVER, true);
-            // Currency *currency = new Currency(currencies_index, "SILVER", Color_SILVER, true);
-            currency.metal = true;
-            // currencies[currencies_index++] = currency;
-            charts[i].currencies[currencies_index] = currency;
-        }
-        currencies_index++;
+        Currency *currency = new Currency(currencies_index, "SILVER", Color_SILVER, true);
+        currency.metal = true;
+        currencies[currencies_index++] = currency;
 
-        // currency.draw_label(pos_x);
-        // pos_x += d_x;
+        currency.draw_label(pos_x);
+        pos_x += d_x;
     }
 
     return(0);
 }
 
 int deinit() {
-    for (int i = 0; i < objs; i++) {
-        if (!ObjectDelete(Indicator_Name + i))
-            Print("Error: code #", GetLastError());
-    }
-
     return(0);
 }
 
@@ -400,88 +307,81 @@ int start() {
     if (counted_bars > 0) counted_bars--;
     limit = Bars - counted_bars;
 
-    for (int ch_i = 0; ch_i < charts_index; ch_i++) {
-        Chart *current_chart = charts[ch_i];
+    int j;
+    bool run = true;
+    for (int i = 0; i < limit; i++) {
+        for (j = 0; j < currencies_index; j++) {
+            if (!currencies[j].is_USD()) {
+                run = currencies[j].calculate_ma(timeframe, slow, fast, i);
 
-        int slow = current_chart.slow;
-        int fast = current_chart.fast;
-
-        int j;
-        bool run = true;
-        for (int i = 0; i < limit; i++) {
-            for (j = 0; j < currencies_index; j++) {
-                if (!current_chart.currencies[j].is_USD()) {
-                    run = current_chart.currencies[j].calculate_ma(current_chart.timeframe, slow, fast, i);
-
-                    if (!run) break;
-                }
+                if (!run) break;
             }
-            if (!run) break;
+        }
+        if (!run) break;
 
-            for (int ci = 0; ci < currencies_index; ci++) {
-                Currency *current_currency = current_chart.currencies[ci];
-                Currency *compare_currency;
+        for (int ci = 0; ci < currencies_index; ci++) {
+            Currency *current_currency = currencies[ci];
+            Currency *compare_currency;
 
-                current_currency.array[i] = 0;
+            current_currency.array[i] = 0;
 
-                if (current_currency.is_USD()) {
-                    for (j = 0; j < currencies_index; j++) {
-                        compare_currency = current_chart.currencies[j];
+            if (current_currency.is_USD()) {
+                for (j = 0; j < currencies_index; j++) {
+                    compare_currency = currencies[j];
 
-                        if (current_currency.name != compare_currency.name) {
-                            double diff = (compare_currency.inverse || compare_currency.is_metal()) ? (compare_currency.fast - compare_currency.slow) : (compare_currency.slow - compare_currency.fast);
+                    if (current_currency.name != compare_currency.name) {
+                        double diff = (compare_currency.inverse || compare_currency.is_metal()) ? (compare_currency.fast - compare_currency.slow) : (compare_currency.slow - compare_currency.fast);
 
-                            current_currency.array[i] += diff;
-                        }
+                        current_currency.array[i] += diff;
                     }
-                } else if (current_currency.is_metal()) {
-                    for (j = 0; j < currencies_index; j++) {
-                        compare_currency = current_chart.currencies[j];
+                }
+            } else if (current_currency.is_metal()) {
+                for (j = 0; j < currencies_index; j++) {
+                    compare_currency = currencies[j];
 
-                        if (current_currency.name != compare_currency.name) {
-                            if (compare_currency.is_USD()) {
-                                current_currency.array[i] += current_currency.slow - current_currency.fast;
+                    if (current_currency.name != compare_currency.name) {
+                        if (compare_currency.is_USD()) {
+                            current_currency.array[i] += current_currency.slow - current_currency.fast;
+                        } else {
+                            if (compare_currency.inverse || compare_currency.is_metal()) {
+                                current_currency.array[i] += compare_currency.fast - compare_currency.slow;
                             } else {
-                                if (compare_currency.inverse || compare_currency.is_metal()) {
-                                    current_currency.array[i] += compare_currency.fast - compare_currency.slow;
-                                } else {
-                                    current_currency.array[i] += compare_currency.slow - compare_currency.fast;
-                                }
+                                current_currency.array[i] += compare_currency.slow - compare_currency.fast;
                             }
                         }
                     }
-                } else {
-                    for (j = 0; j < currencies_index; j++) {
-                        compare_currency = current_chart.currencies[j];
+                }
+            } else {
+                for (j = 0; j < currencies_index; j++) {
+                    compare_currency = currencies[j];
 
-                        if (current_currency.name != compare_currency.name) {
-                            if (compare_currency.is_USD() || compare_currency.is_metal()) {
-                                if (current_currency.inverse) {
-                                    current_currency.array[i] += current_currency.slow - current_currency.fast;
+                    if (current_currency.name != compare_currency.name) {
+                        if (compare_currency.is_USD() || compare_currency.is_metal()) {
+                            if (current_currency.inverse) {
+                                current_currency.array[i] += current_currency.slow - current_currency.fast;
+                            } else {
+                                current_currency.array[i] += current_currency.fast - current_currency.slow;
+                            }
+                        } else {
+                            if (current_currency.inverse) {
+                                if (current_currency.has_priority(compare_currency)) {
+                                    current_currency.array[i] += (compare_currency.fast/current_currency.fast) - (compare_currency.slow/current_currency.slow);
                                 } else {
-                                    current_currency.array[i] += current_currency.fast - current_currency.slow;
+                                    if (compare_currency.inverse) {
+                                        current_currency.array[i] += (current_currency.slow/compare_currency.slow) - (current_currency.fast/compare_currency.fast);
+                                    } else {
+                                        current_currency.array[i] += (compare_currency.slow*current_currency.slow) - (compare_currency.fast*current_currency.fast);
+                                    }
                                 }
                             } else {
-                                if (current_currency.inverse) {
-                                    if (current_currency.has_priority(compare_currency)) {
-                                        current_currency.array[i] += (compare_currency.fast/current_currency.fast) - (compare_currency.slow/current_currency.slow);
+                                if (current_currency.has_priority(compare_currency)) {
+                                    if (compare_currency.inverse) {
+                                        current_currency.array[i] += (current_currency.fast*compare_currency.fast) - (current_currency.slow*compare_currency.slow);
                                     } else {
-                                        if (compare_currency.inverse) {
-                                            current_currency.array[i] += (current_currency.slow/compare_currency.slow) - (current_currency.fast/compare_currency.fast);
-                                        } else {
-                                            current_currency.array[i] += (compare_currency.slow*current_currency.slow) - (compare_currency.fast*current_currency.fast);
-                                        }
+                                        current_currency.array[i] += (current_currency.fast/compare_currency.fast) - (current_currency.slow/compare_currency.slow);
                                     }
                                 } else {
-                                    if (current_currency.has_priority(compare_currency)) {
-                                        if (compare_currency.inverse) {
-                                            current_currency.array[i] += (current_currency.fast*compare_currency.fast) - (current_currency.slow*compare_currency.slow);
-                                        } else {
-                                            current_currency.array[i] += (current_currency.fast/compare_currency.fast) - (current_currency.slow/compare_currency.slow);
-                                        }
-                                    } else {
-                                        current_currency.array[i] += (compare_currency.slow/current_currency.slow) - (compare_currency.fast/current_currency.fast);
-                                    }
+                                    current_currency.array[i] += (compare_currency.slow/current_currency.slow) - (compare_currency.fast/current_currency.fast);
                                 }
                             }
                         }
@@ -492,12 +392,4 @@ int start() {
     }
 
     return(0);
-}
-
-int width_for(string currency) {
-    if (StringFind(Symbol(), currency, 0) < 0) {
-        return(Thin_Line_Thickness);
-    } else {
-        return(Line_Thickness);
-    }
 }
