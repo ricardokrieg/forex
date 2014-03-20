@@ -11,20 +11,27 @@
 #define UP 1
 #define DOWN 2
 
+#define NAME "BabonDashboard"
+
 //------------------------------------------------------------------------------
 
-extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, GBPCHF,";
 extern int FontSize = 20;
 extern int Corner = 0;
 extern int DistanceX = 20;
 extern int DistanceY = 20;
 
+long chart_id;
+
 //------------------------------------------------------------------------------
 
 class Pair {
    public:
-      Pair(string n) {
+      Pair(int i, string n) {
+         this.index = i;
          this.name = n;
+         this.point_value = this.calculate_point_value();
+
+         this.name_label = StringConcatenate(NAME, "LABEL", this.index);
       }
 
       void update(void) {
@@ -74,8 +81,8 @@ class Pair {
          if (this.center_line_status == UP && this.upper_band_status == UP) {
             this.update_tma_slope(1);
 
-            ObjectSetText(object_name("TMA-Slope", this.name), DoubleToStr(this.tma_slope*this.point_value()*100, 0));
-            ObjectSetText(object_name("TMA-HighestSlope", this.name), DoubleToStr(this.tma_highest_slope*this.point_value()*100, 0));
+            ObjectSetText(object_name("TMA-Slope", this.name), DoubleToStr(this.tma_slope*this.point_value*100, 0));
+            ObjectSetText(object_name("TMA-HighestSlope", this.name), DoubleToStr(this.tma_highest_slope*this.point_value*100, 0));
 
             if (this.lower_band_status == UP) {
                ObjectSetText(object_name("TMA", this.name), CharToStr(233));
@@ -86,7 +93,7 @@ class Pair {
                ObjectSetText(object_name("TMA", this.name), CharToStr(236));
                ObjectSet(object_name("TMA", this.name), OBJPROP_COLOR, Orange);
                ObjectSet(object_name("TMA-Slope", this.name), OBJPROP_COLOR, Orange);
-               ObjectSet(object_name("TMA-HighestSpeed", this.name), OBJPROP_COLOR, DarkGoldenrod);
+               ObjectSet(object_name("TMA-HighestSlope", this.name), OBJPROP_COLOR, DarkGoldenrod);
             }
          }
       }
@@ -95,8 +102,8 @@ class Pair {
          if (this.center_line_status == DOWN && this.lower_band_status == DOWN) {
             this.update_tma_slope(2);
 
-            ObjectSetText(object_name("TMA-Slope", this.name), DoubleToStr(this.tma_slope*this.point_value()*100, 0));
-            ObjectSetText(object_name("TMA-HighestSlope", this.name), DoubleToStr(this.tma_highest_slope*this.point_value()*100, 0));
+            ObjectSetText(object_name("TMA-Slope", this.name), DoubleToStr(this.tma_slope*this.point_value*100, 0));
+            ObjectSetText(object_name("TMA-HighestSlope", this.name), DoubleToStr(this.tma_highest_slope*this.point_value*100, 0));
 
             if (this.upper_band_status == DOWN) {
                ObjectSetText(object_name("TMA", this.name), CharToStr(234));
@@ -140,6 +147,26 @@ class Pair {
          this.tma_highest_slope = MathMax(this.tma_slope, this.tma_highest_slope);
       }
 
+      double calculate_point_value(void) {
+         if (MarketInfo(this.name, MODE_POINT) == 0.00001) return(10000);
+         if (MarketInfo(this.name, MODE_POINT) == 0.001) return(100);
+         return(MarketInfo(this.name, MODE_POINT)*100000);
+      }
+
+      void draw_name_label(void) {
+         chart_id = -1;
+         if (chart_id = ObjectFind(this.name_label) >= 0) {
+            ObjectCreate(chart_id, this.name_label, OBJ_LABEL, 0, 0, 0);
+            TextSetFont("Arial", FontSize);
+            ObjectSetString(chart_id, this.name_label, OBJPROP_TEXT, this.name);
+            ObjectSetInteger(chart_id, this.name_label, OBJPROP_COLOR, White);
+            ObjectSetInteger(chart_id, this.name_label, OBJPROP_CORNER, Corner);
+            ObjectSetInteger(chart_id, this.name_label, OBJPROP_XDISTANCE, DistanceX);
+            ObjectSetInteger(chart_id, this.name_label, OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*this.index);
+         }
+      }
+
+      int index;
       string name;
 
       double tma_slope;
@@ -154,6 +181,8 @@ class Pair {
       double tma_center_line = 0;
       double tma_upper_band = 0;
       double tma_lower_band = 0;
+
+      double point_value = 0;
 };
 
 //------------------------------------------------------------------------------
@@ -165,7 +194,7 @@ int pairs_index = 0;
 
 int init() {
    for (int i = 0; i < SymbolsTotal(false); i++) {
-      Pair *pair = new Pair(SymbolName(i, false));
+      Pair *pair = new Pair(i, SymbolName(i, false));
       pairs[pairs_index++] = pair;
    }
 
@@ -177,19 +206,12 @@ int deinit() {return(0);}
 int start() {
    if (IndicatorCounted() < 0) return(-1);
 
-   int pairs_index = 0;
-   while (true) {
-      string pair = pairs[pairs_index];
-      if (pair == "") break;
+   for (int i = 0; i < pairs_index; i++) {
+      Pair *pair = pairs[i];
 
       pair.update();
 
-      create_labels(pair, pairs_index);
-
-      calculate_tma_above_cloud(pair, pairs_index);
-      calculate_tma_below_cloud(pair, pairs_index);
-
-      pairs_index++;
+      create_labels();
    }
 
    return(0);
@@ -217,50 +239,27 @@ void create_labels(string pair, int index) {
       ObjectSet(object_name("TMA", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
 
-   if (ObjectFind(object_name("TMA-Speed", pair)) >= 0) {
-      ObjectSetText(object_name("TMA-Speed", pair), "");
+   if (ObjectFind(object_name("TMA-Slope", pair)) >= 0) {
+      ObjectSetText(object_name("TMA-Slope", pair), "");
    } else {
-      ObjectCreate(object_name("TMA-Speed", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA-Speed", pair), "", FontSize);
-      ObjectSet(object_name("TMA-Speed", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA-Speed", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*9);
-      ObjectSet(object_name("TMA-Speed", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
+      ObjectCreate(object_name("TMA-Slope", pair), OBJ_LABEL, 0, 0, 0);
+      ObjectSetText(object_name("TMA-Slope", pair), "", FontSize);
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_CORNER, Corner);
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*9);
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
 
-   if (ObjectFind(object_name("TMA-HigherSpeed", pair)) >= 0) {
-      ObjectSetText(object_name("TMA-HigherSpeed", pair), "");
+   if (ObjectFind(object_name("TMA-HighestSlope", pair)) >= 0) {
+      ObjectSetText(object_name("TMA-HighestSlope", pair), "");
    } else {
-      ObjectCreate(object_name("TMA-HigherSpeed", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA-HigherSpeed", pair), "", FontSize);
-      ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*12);
-      ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
+      ObjectCreate(object_name("TMA-HighestSlope", pair), OBJ_LABEL, 0, 0, 0);
+      ObjectSetText(object_name("TMA-HighestSlope", pair), "", FontSize);
+      ObjectSet(object_name("TMA-HighestSlope", pair), OBJPROP_CORNER, Corner);
+      ObjectSet(object_name("TMA-HighestSlope", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*12);
+      ObjectSet(object_name("TMA-HighestSlope", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
-}
-
-void extract_pairs() {
-    int string_find_start = 0;
-    int pairs_index = 0;
-
-    while (true) {
-        int index = StringFind(Pairs, ",", string_find_start);
-        if (index == -1) break;
-
-        pairs[pairs_index] = StringTrimRight(StringTrimLeft(StringSubstr(Pairs, string_find_start, index-string_find_start)));
-
-        string_find_start = index+1;
-        pairs_index++;
-    }
-
-    pairs[pairs_index] = "";
 }
 
 string object_name(string name, string pair) {
    return(StringConcatenate(name, " (", pair, ")"));
-}
-
-double point_value(string pair) {
-   if (MarketInfo(pair, MODE_POINT) == 0.00001) return(10000);
-   if (MarketInfo(pair, MODE_POINT) == 0.001) return(100);
-   return(MarketInfo(pair, MODE_POINT)*100000);
 }
