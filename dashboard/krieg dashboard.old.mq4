@@ -11,8 +11,7 @@
 #define UP 1
 #define DOWN 2
 
-#define TDI_GREEN 4
-#define TDI_RED 5
+//------------------------------------------------------------------------------
 
 extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, GBPCHF,";
 extern int FontSize = 20;
@@ -20,12 +19,22 @@ extern int Corner = 0;
 extern int DistanceX = 20;
 extern int DistanceY = 20;
 
-string pairs[40];
+//------------------------------------------------------------------------------
+
+class Pair {
+   public:
+      Pair(string n) {
+         this.name = n;
+      }
+
+      string name;
+};
+
+//------------------------------------------------------------------------------
+
+string pairs[];
 double tma_speed[40];
 double tma_higher_speed[40];
-double tdi_distance[40];
-double ivar_value[40];
-double heiken_ashi_size[40];
 
 int center_line_status[40];
 int upper_band_status[40];
@@ -45,9 +54,6 @@ int init() {
    ArrayInitialize(center_line_status, 0);
    ArrayInitialize(upper_band_status, 0);
    ArrayInitialize(lower_band_status, 0);
-   ArrayInitialize(tdi_distance, 0);
-   ArrayInitialize(ivar_value, 0);
-   ArrayInitialize(heiken_ashi_size, 0);
 
    int pairs_index = 0;
    while (true) {
@@ -58,10 +64,6 @@ int init() {
       ObjectDelete(object_name("TMA-Speed", pair));
       ObjectDelete(object_name("TMA-HigherSpeed", pair));
       ObjectDelete(object_name("Pair", pair));
-
-      ObjectDelete(object_name("TDI", pair));
-      ObjectDelete(object_name("IVAR", pair));
-      ObjectDelete(object_name("HEIKEN-ASHI", pair));
 
       pairs_index++;
    }
@@ -83,7 +85,6 @@ int start() {
       calculate_tma_status(pairs_index);
 
       create_labels(pair, pairs_index);
-      draw_indicators(pair, pairs_index);
 
       calculate_tma_above_cloud(pair, pairs_index);
       calculate_tma_below_cloud(pair, pairs_index);
@@ -101,33 +102,6 @@ void calculate_indicators(string pair, int index) {
    tma_center_line = iCustom(pair, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, CENTER_LINE, 0);
    tma_upper_band = iCustom(pair, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, UPPER_BAND, 0);
    tma_lower_band = iCustom(pair, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, LOWER_BAND, 0);
-
-   //tdi_distance[index] = MathAbs(iCustom(pair, PERIOD_M1, "TDI Red Green", TDI_GREEN, 0) - iCustom(pair, PERIOD_M1, "TDI Red Green", TDI_RED, 0));
-   ivar_value[index] = iCustom(pair, PERIOD_H1, "iVAR", 0, 0)*100;
-
-   double heiken_ashi_open = iCustom(pair, PERIOD_H1, "Heiken Ashi", 3, 0);
-   double heiken_ashi_close = iCustom(pair, PERIOD_H1, "Heiken Ashi", 2, 0);
-   heiken_ashi_size[index] = (heiken_ashi_open - heiken_ashi_close)*point_value(pair);
-}
-
-void draw_indicators(string pair, int index) {
-   //ObjectSetText(object_name("TDI", pair), DoubleToStr(tdi_distance[index], 5));
-
-   if (ivar_value[index] >= 50) {
-      ObjectSet(object_name("IVAR", pair), OBJPROP_COLOR, Red);
-   }
-   ObjectSetText(object_name("IVAR", pair), DoubleToStr(ivar_value[index], 0));
-
-   if (heiken_ashi_size[index] < 0) {
-      ObjectSet(object_name("HEIKEN-ASHI", pair), OBJPROP_COLOR, Red);
-   }
-   double abs_heiken_ashi = MathAbs(heiken_ashi_size[index]);
-   if (abs_heiken_ashi < 10)
-      ObjectSetText(object_name("HEIKEN-ASHI", pair), CharToStr(76));
-   else if (abs_heiken_ashi < 30)
-      ObjectSetText(object_name("HEIKEN-ASHI", pair), CharToStr(75));
-   else
-      ObjectSetText(object_name("HEIKEN-ASHI", pair), CharToStr(74));
 }
 
 void calculate_tma_status(int index) {
@@ -266,30 +240,6 @@ void create_labels(string pair, int index) {
       ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_CORNER, Corner);
       ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*12);
       ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
-   }
-
-   if (ObjectFind(object_name("IVAR", pair)) >= 0) {
-      ObjectSetText(object_name("IVAR", pair), "");
-      ObjectSet(object_name("IVAR", pair), OBJPROP_COLOR, White);
-   } else {
-      ObjectCreate(object_name("IVAR", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("IVAR", pair), "", FontSize);
-      ObjectSet(object_name("IVAR", pair), OBJPROP_COLOR, White);
-      ObjectSet(object_name("IVAR", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("IVAR", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*15);
-      ObjectSet(object_name("IVAR", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
-   }
-
-   if (ObjectFind(object_name("HEIKEN-ASHI", pair)) >= 0) {
-      ObjectSetText(object_name("HEIKEN-ASHI", pair), "", FontSize, "Wingdings");
-      ObjectSet(object_name("HEIKEN-ASHI", pair), OBJPROP_COLOR, White);
-   } else {
-      ObjectCreate(object_name("HEIKEN-ASHI", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("HEIKEN-ASHI", pair), "", FontSize);
-      ObjectSet(object_name("HEIKEN-ASHI", pair), OBJPROP_COLOR, White);
-      ObjectSet(object_name("HEIKEN-ASHI", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("HEIKEN-ASHI", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*17);
-      ObjectSet(object_name("HEIKEN-ASHI", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
 }
 
