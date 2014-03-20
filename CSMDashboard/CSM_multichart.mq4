@@ -1,3 +1,6 @@
+#property copyright "Ricardo Franco"
+#property link      "ricardo.krieg@gmail.com"
+
 string Indicator_Name = "CSM Dashboard";
 int objs = 0;
 
