@@ -3,10 +3,16 @@
 #property strict
 #property indicator_chart_window
 
-extern int LowSpread = 5;
-extern color Color = clrYellow;
+extern int SpreadLimit = 5;
+extern color Color = clrWhite;
+extern color HighlightColor = clrYellow;
+extern string Font = "Arial";
+extern int FontSize = 12;
+extern int DistanceX = 10;
+extern int DistanceY = 20;
+extern bool DisplayLegend = true;
 
-string IndicatorName = "SpreadDashboard";
+string indicator_name = "SpreadDashboard";
 
 class Pair {
     public:
@@ -14,8 +20,8 @@ class Pair {
             this.index = i;
             this.name = n;
             this.spread = 0;
-            this.col = clrWhite;
-            this.label_name = StringConcatenate(IndicatorName, this.name);
+            this.col = Color;
+            this.label_name = StringConcatenate(indicator_name, this.name);
             this.label_spread = StringConcatenate(this.label_name, "SPREAD");
         }
 
@@ -30,10 +36,10 @@ class Pair {
 
             ObjectSetString(0, this.label_spread, OBJPROP_TEXT, IntegerToString(this.spread, 2));
 
-            if (this.spread <= LowSpread) {
+            if (this.spread <= SpreadLimit) {
                 this.col = Color;
             } else {
-                this.col = clrWhite;
+                this.col = HighlightColor;
             }
 
             ObjectSetInteger(0, this.label_name, OBJPROP_COLOR, this.col);
@@ -43,11 +49,11 @@ class Pair {
         bool create_labels(void) {
             if (ObjectFind(0, this.label_name) < 0) {
                 if (ObjectCreate(0, this.label_name, OBJ_LABEL, 0, 0, 0)) {
-                    TextSetFont("Arial", 12);
+                    TextSetFont(Font, FontSize);
                     ObjectSetString(0, this.label_name, OBJPROP_TEXT, this.name);
                     ObjectSetInteger(0, this.label_name, OBJPROP_COLOR, this.col);
-                    ObjectSetInteger(0, this.label_name, OBJPROP_XDISTANCE, 0);
-                    ObjectSetInteger(0, this.label_name, OBJPROP_YDISTANCE, this.index*(12+2)+20);
+                    ObjectSetInteger(0, this.label_name, OBJPROP_XDISTANCE, DistanceX);
+                    ObjectSetInteger(0, this.label_name, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
                 } else {
                     Print("Error ObjectCreate: ", GetLastError());
                     return(false);
@@ -56,11 +62,11 @@ class Pair {
 
             if (ObjectFind(0, this.label_spread) < 0) {
                 if (ObjectCreate(0, this.label_spread, OBJ_LABEL, 0, 0, 0)) {
-                    TextSetFont("Arial", 12);
+                    TextSetFont(Font, FontSize);
                     ObjectSetString(0, this.label_spread, OBJPROP_TEXT, "--");
                     ObjectSetInteger(0, this.label_spread, OBJPROP_COLOR, this.col);
-                    ObjectSetInteger(0, this.label_spread, OBJPROP_XDISTANCE, 12*6+20);
-                    ObjectSetInteger(0, this.label_spread, OBJPROP_YDISTANCE, this.index*(12+2)+20);
+                    ObjectSetInteger(0, this.label_spread, OBJPROP_XDISTANCE, DistanceX+FontSize*6+10);
+                    ObjectSetInteger(0, this.label_spread, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
                 } else {
                     Print("Error ObjectCreate: ", GetLastError());
                     return(false);
@@ -78,44 +84,23 @@ class Pair {
         color col;
 };
 
-Pair *pairs[28];
-int pairs_size;
+Pair *pairs[];
+int pairs_size = 0;
 
 int OnInit() {
-    string pair_names[] = {
-        "EURUSD",
-        "EURGBP",
-        "EURJPY",
-        "EURCHF",
-        "EURAUD",
-        "EURCAD",
-        "EURNZD",
-        "USDJPY",
-        "USDCHF",
-        "USDCAD",
-        "GBPUSD",
-        "GBPJPY",
-        "GBPCHF",
-        "GBPAUD",
-        "GBPCAD",
-        "GBPNZD",
-        "CHFJPY",
-        "AUDUSD",
-        "AUDJPY",
-        "AUDCHF",
-        "AUDCAD",
-        "AUDNZD",
-        "CADJPY",
-        "CADCHF",
-        "NZDUSD",
-        "NZDJPY",
-        "NZDCHF",
-        "NZDCAD"
-    };
-    pairs_size = 28;
+    IndicatorShortName(indicator_name);
+
+    pairs_size = SymbolsTotal(true);
+
+    ArrayResize(pairs, pairs_size);
 
     for (int i = 0; i < pairs_size; i++) {
-        pairs[i] = new Pair(i, pair_names[i]);
+        pairs[i] = new Pair(i, SymbolName(i, true));
+    }
+
+    if (DisplayLegend) {
+        draw_legend();
+        DistanceY += 20;
     }
 
     return(INIT_SUCCEEDED);
@@ -127,4 +112,18 @@ int start() {
     }
 
     return(0);
+}
+
+void draw_legend(void) {
+    string legend_name = StringConcatenate(indicator_name, "LEGEND");
+
+    if (ObjectCreate(0, legend_name, OBJ_LABEL, 0, 0, 0)) {
+        TextSetFont("Arial", 14);
+        ObjectSetString(0, legend_name, OBJPROP_TEXT, "Spread Dashboard");
+        ObjectSetInteger(0, legend_name, OBJPROP_COLOR, Color);
+        ObjectSetInteger(0, legend_name, OBJPROP_XDISTANCE, DistanceX);
+        ObjectSetInteger(0, legend_name, OBJPROP_YDISTANCE, DistanceY);
+    } else {
+        Print("Error ObjectCreate: ", GetLastError());
+    }
 }
