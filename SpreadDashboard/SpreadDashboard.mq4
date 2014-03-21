@@ -36,9 +36,8 @@ class Pair {
 
             ObjectSetString(0, this.label_spread, OBJPROP_TEXT, IntegerToString(this.spread, 2));
 
+            this.col = Color;
             if (this.spread <= SpreadLimit) {
-                this.col = Color;
-            } else {
                 this.col = HighlightColor;
             }
 
