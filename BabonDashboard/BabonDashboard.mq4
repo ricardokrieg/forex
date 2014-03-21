@@ -15,12 +15,11 @@
 
 //------------------------------------------------------------------------------
 
+extern string Font = "Arial";
 extern int FontSize = 20;
 extern int Corner = 0;
 extern int DistanceX = 20;
 extern int DistanceY = 20;
-
-long chart_id;
 
 //------------------------------------------------------------------------------
 
@@ -31,13 +30,25 @@ class Pair {
          this.name = n;
          this.point_value = this.calculate_point_value();
 
-         this.name_label = StringConcatenate(NAME, "LABEL", this.index);
+         this.label_name = StringConcatenate(NAME, this.name);
+         this.label_tma = StringConcatenate(this.label_name, "TMA");
+         this.label_tma_slope = StringConcatenate(this.label_name, "SLOPE");
+         this.label_tma_highest_slope = StringConcatenate(this.label_name, "HIGHESTSLOPE");
       }
 
       void update(void) {
          this.update_ichimoku();
          this.update_tma();
          this.update_tma_status();
+
+         this.draw();
+      }
+
+      void draw(void) {
+         if (!this.create_labels()) return;
+
+         this.check_tma_above_cloud();
+         this.check_tma_below_cloud();
       }
 
       void update_ichimoku(void) {
@@ -51,7 +62,7 @@ class Pair {
          this.tma_lower_band = iCustom(this.name, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, LOWER_BAND, 0);
       }
 
-      void update_tma_status(int index) {
+      void update_tma_status(void) {
          this.upper_band_status = ONCLOUD;
          if (this.tma_upper_band > this.ichimoku_senkou_a && this.tma_upper_band > this.ichimoku_senkou_b) {
             this.upper_band_status = UP;
@@ -81,40 +92,40 @@ class Pair {
          if (this.center_line_status == UP && this.upper_band_status == UP) {
             this.update_tma_slope(1);
 
-            ObjectSetText(object_name("TMA-Slope", this.name), DoubleToStr(this.tma_slope*this.point_value*100, 0));
-            ObjectSetText(object_name("TMA-HighestSlope", this.name), DoubleToStr(this.tma_highest_slope*this.point_value*100, 0));
+            ObjectSetString(0, this.label_tma_slope, OBJPROP_TEXT, DoubleToStr(this.tma_slope*this.point_value*100, 0));
+            ObjectSetString(0, this.label_tma_highest_slope, OBJPROP_TEXT, DoubleToStr(this.tma_highest_slope*this.point_value*100, 0));
 
             if (this.lower_band_status == UP) {
-               ObjectSetText(object_name("TMA", this.name), CharToStr(233));
-               ObjectSet(object_name("TMA", this.name), OBJPROP_COLOR, Lime);
-               ObjectSet(object_name("TMA-Slope", this.name), OBJPROP_COLOR, Lime);
-               ObjectSet(object_name("TMA-HighestSlope", this.name), OBJPROP_COLOR, ForestGreen);
+               ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(233));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, Lime);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, Lime);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, ForestGreen);
             } else {
-               ObjectSetText(object_name("TMA", this.name), CharToStr(236));
-               ObjectSet(object_name("TMA", this.name), OBJPROP_COLOR, Orange);
-               ObjectSet(object_name("TMA-Slope", this.name), OBJPROP_COLOR, Orange);
-               ObjectSet(object_name("TMA-HighestSlope", this.name), OBJPROP_COLOR, DarkGoldenrod);
+               ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(236));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, Orange);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, Orange);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, DarkGoldenrod);
             }
          }
       }
 
-      void calculate_tma_below_cloud(void) {
+      void check_tma_below_cloud(void) {
          if (this.center_line_status == DOWN && this.lower_band_status == DOWN) {
             this.update_tma_slope(2);
 
-            ObjectSetText(object_name("TMA-Slope", this.name), DoubleToStr(this.tma_slope*this.point_value*100, 0));
-            ObjectSetText(object_name("TMA-HighestSlope", this.name), DoubleToStr(this.tma_highest_slope*this.point_value*100, 0));
+            ObjectSetString(0, this.label_tma_slope, OBJPROP_TEXT, DoubleToStr(this.tma_slope*this.point_value*100, 0));
+            ObjectSetString(0, this.label_tma_highest_slope, OBJPROP_TEXT, DoubleToStr(this.tma_highest_slope*this.point_value*100, 0));
 
             if (this.upper_band_status == DOWN) {
-               ObjectSetText(object_name("TMA", this.name), CharToStr(234));
-               ObjectSet(object_name("TMA", this.name), OBJPROP_COLOR, Red);
-               ObjectSet(object_name("TMA-Slope", this.name), OBJPROP_COLOR, Red);
-               ObjectSet(object_name("TMA-HighestSlope", this.name), OBJPROP_COLOR, FireBrick);
+               ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(234));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, Red);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, Red);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, FireBrick);
             } else {
-               ObjectSetText(object_name("TMA", this.name), CharToStr(238));
-               ObjectSet(object_name("TMA", this.name), OBJPROP_COLOR, Orange);
-               ObjectSet(object_name("TMA-Slope", this.name), OBJPROP_COLOR, Orange);
-               ObjectSet(object_name("TMA-HighestSlope", this.name), OBJPROP_COLOR, DarkGoldenrod);
+               ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(238));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, Orange);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, Orange);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, DarkGoldenrod);
             }
          }
       }
@@ -153,17 +164,70 @@ class Pair {
          return(MarketInfo(this.name, MODE_POINT)*100000);
       }
 
-      void draw_name_label(void) {
-         chart_id = -1;
-         if (chart_id = ObjectFind(this.name_label) >= 0) {
-            ObjectCreate(chart_id, this.name_label, OBJ_LABEL, 0, 0, 0);
-            TextSetFont("Arial", FontSize);
-            ObjectSetString(chart_id, this.name_label, OBJPROP_TEXT, this.name);
-            ObjectSetInteger(chart_id, this.name_label, OBJPROP_COLOR, White);
-            ObjectSetInteger(chart_id, this.name_label, OBJPROP_CORNER, Corner);
-            ObjectSetInteger(chart_id, this.name_label, OBJPROP_XDISTANCE, DistanceX);
-            ObjectSetInteger(chart_id, this.name_label, OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*this.index);
+      bool create_labels(void) {
+         if (ObjectFind(0, this.label_name) < 0) {
+            if (ObjectCreate(0, this.label_name, OBJ_LABEL, 0, 0, 0)) {
+               ObjectSetString(0, this.label_name, OBJPROP_FONT, Font);
+               ObjectSetInteger(0, this.label_name, OBJPROP_FONTSIZE, FontSize);
+               ObjectSetString(0, this.label_name, OBJPROP_TEXT, this.name);
+               ObjectSetInteger(0, this.label_name, OBJPROP_COLOR, clrWhite);
+               ObjectSetInteger(0, this.label_name, OBJPROP_CORNER, Corner);
+               ObjectSetInteger(0, this.label_name, OBJPROP_XDISTANCE, DistanceX);
+               ObjectSetInteger(0, this.label_name, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_name, OBJPROP_SELECTABLE, false);
+            } else {
+               Print("Error ObjectCreate: ", GetLastError());
+               return(false);
+            }
          }
+
+         if (ObjectFind(0, this.label_tma) < 0) {
+            if (ObjectCreate(0, this.label_tma, OBJ_LABEL, 0, 0, 0)) {
+               ObjectSetString(0, this.label_tma, OBJPROP_FONT, "Wingdings");
+               ObjectSetInteger(0, this.label_tma, OBJPROP_FONTSIZE, FontSize);
+               ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(232));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, clrGray);
+               ObjectSetInteger(0, this.label_tma, OBJPROP_CORNER, Corner);
+               ObjectSetInteger(0, this.label_tma, OBJPROP_XDISTANCE, DistanceX+FontSize*6);
+               ObjectSetInteger(0, this.label_tma, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_SELECTABLE, false);
+            } else {
+               Print("Error ObjectCreate: ", GetLastError());
+               return(false);
+            }
+         }
+
+         if (ObjectFind(0, this.label_tma_slope) < 0) {
+            if (ObjectCreate(0, this.label_tma_slope, OBJ_LABEL, 0, 0, 0)) {
+               ObjectSetString(0, this.label_tma_slope, OBJPROP_FONT, Font);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_FONTSIZE, FontSize);
+               ObjectSetString(0, this.label_tma_slope, OBJPROP_TEXT, "--");
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_CORNER, Corner);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_XDISTANCE, DistanceX+FontSize*9);
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_SELECTABLE, false);
+            } else {
+               Print("Error ObjectCreate: ", GetLastError());
+               return(false);
+            }
+         }
+
+         if (ObjectFind(0, this.label_tma_highest_slope) < 0) {
+            if (ObjectCreate(0, this.label_tma_highest_slope, OBJ_LABEL, 0, 0, 0)) {
+               ObjectSetString(0, this.label_tma_highest_slope, OBJPROP_FONT, Font);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_FONTSIZE, FontSize);
+               ObjectSetString(0, this.label_tma_highest_slope, OBJPROP_TEXT, "--");
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_CORNER, Corner);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_XDISTANCE, DistanceX+FontSize*12);
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_SELECTABLE, false);
+            } else {
+               Print("Error ObjectCreate: ", GetLastError());
+               return(false);
+            }
+         }
+
+         return(true);
       }
 
       int index;
@@ -176,26 +240,36 @@ class Pair {
       int upper_band_status;
       int lower_band_status;
 
-      double ichimoku_senkou_a = 0;
-      double ichimoku_senkou_b = 0;
-      double tma_center_line = 0;
-      double tma_upper_band = 0;
-      double tma_lower_band = 0;
+      double ichimoku_senkou_a;
+      double ichimoku_senkou_b;
+      double tma_center_line;
+      double tma_upper_band;
+      double tma_lower_band;
 
-      double point_value = 0;
+      double point_value;
+
+      string label_name;
+      string label_tma;
+      string label_tma_slope;
+      string label_tma_highest_slope;
 };
 
 //------------------------------------------------------------------------------
 
 Pair *pairs[];
-int pairs_index = 0;
+int pairs_size = 0;
 
 //------------------------------------------------------------------------------
 
-int init() {
-   for (int i = 0; i < SymbolsTotal(false); i++) {
-      Pair *pair = new Pair(i, SymbolName(i, false));
-      pairs[pairs_index++] = pair;
+int OnInit() {
+   IndicatorShortName(NAME);
+
+   pairs_size = SymbolsTotal(true);
+
+   ArrayResize(pairs, pairs_size);
+
+   for (int i = 0; i < pairs_size; i++) {
+       pairs[i] = new Pair(i, SymbolName(i, true));
    }
 
    return(0);
@@ -206,60 +280,9 @@ int deinit() {return(0);}
 int start() {
    if (IndicatorCounted() < 0) return(-1);
 
-   for (int i = 0; i < pairs_index; i++) {
-      Pair *pair = pairs[i];
-
-      pair.update();
-
-      create_labels();
+   for (int i = 0; i < pairs_size; i++) {
+      pairs[i].update();
    }
 
    return(0);
-}
-
-void create_labels(string pair, int index) {
-   if (ObjectFind(object_name("Pair", pair)) == -1) {
-      ObjectCreate(object_name("Pair", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("Pair", pair), pair, FontSize);
-      ObjectSet(object_name("Pair", pair), OBJPROP_COLOR, White);
-      ObjectSet(object_name("Pair", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("Pair", pair), OBJPROP_XDISTANCE, DistanceX);
-      ObjectSet(object_name("Pair", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
-   }
-
-   if (ObjectFind(object_name("TMA", pair)) >= 0) {
-      ObjectSetText(object_name("TMA", pair), CharToStr(75));
-      ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, Gray);
-   } else {
-      ObjectCreate(object_name("TMA", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA", pair), CharToStr(75), FontSize, "Wingdings");
-      ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, Gray);
-      ObjectSet(object_name("TMA", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*6);
-      ObjectSet(object_name("TMA", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
-   }
-
-   if (ObjectFind(object_name("TMA-Slope", pair)) >= 0) {
-      ObjectSetText(object_name("TMA-Slope", pair), "");
-   } else {
-      ObjectCreate(object_name("TMA-Slope", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA-Slope", pair), "", FontSize);
-      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*9);
-      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
-   }
-
-   if (ObjectFind(object_name("TMA-HighestSlope", pair)) >= 0) {
-      ObjectSetText(object_name("TMA-HighestSlope", pair), "");
-   } else {
-      ObjectCreate(object_name("TMA-HighestSlope", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA-HighestSlope", pair), "", FontSize);
-      ObjectSet(object_name("TMA-HighestSlope", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA-HighestSlope", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*12);
-      ObjectSet(object_name("TMA-HighestSlope", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
-   }
-}
-
-string object_name(string name, string pair) {
-   return(StringConcatenate(name, " (", pair, ")"));
 }
