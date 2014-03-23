@@ -1,9 +1,9 @@
 #property copyright "Ricardo Franco"
 #property link      "ricardo.krieg@gmail.com"
-
-string Indicator_Name = "CSM Dashboard";
-
+#property strict
 #property indicator_chart_window
+
+#define NAME "BabonDashboard"
 
 //------------------------------------------------------------------------------
 
@@ -32,17 +32,17 @@ extern bool USDIX = false;
 extern bool GOLD = false;
 extern bool SILVER = false;
 
-extern color Color_USD = White;
-extern color Color_EUR = DodgerBlue;
-extern color Color_GBP = Red;
-extern color Color_CHF = Aqua;
-extern color Color_JPY = Yellow;
-extern color Color_AUD = MediumOrchid;
-extern color Color_CAD = Chartreuse;
-extern color Color_NZD = DarkOrange;
-extern color Color_USDIX = SteelBlue;
-extern color Color_GOLD = RosyBrown;
-extern color Color_SILVER = Khaki;
+extern color Color_USD = clrWhite;
+extern color Color_EUR = clrDodgerBlue;
+extern color Color_GBP = clrRed;
+extern color Color_CHF = clrAqua;
+extern color Color_JPY = clrYellow;
+extern color Color_AUD = clrMediumOrchid;
+extern color Color_CAD = clrChartreuse;
+extern color Color_NZD = clrDarkOrange;
+extern color Color_USDIX = clrSteelBlue;
+extern color Color_GOLD = clrRosyBrown;
+extern color Color_SILVER = clrKhaki;
 
 extern int mn_slow = 12;
 extern int mn_fast = 3;
@@ -64,8 +64,8 @@ extern int m1_slow = 25;
 extern int m1_fast = 3;
 
 extern int Corner = 0;
-extern int X = 100;
-extern int Y = 100;
+extern int DistanceX = 100;
+extern int DistanceY = 100;
 
 //------------------------------------------------------------------------------
 
@@ -210,7 +210,7 @@ Chart *charts[9];
 //------------------------------------------------------------------------------
 
 int init() {
-    IndicatorShortName(Indicator_Name);
+    IndicatorShortName(NAME);
 
     if (Enable_M1) {
         Chart *chart = new Chart(charts_index, 1, m1_slow, m1_fast);
@@ -435,17 +435,8 @@ int start() {
                         }
                     }
                 }
-
-                // Print(current_currency.name, "  -  ", current_currency.array[ArraySize(current_currency.array)-1]);
-                // Print(current_currency.name, "  -  ", current_currency.array[0]);
-                // Print(current_currency.name, "  -  ", current_currency.array[limit-1]);
-                Print(current_currency.name, "  -  ", current_currency.array[i]);
             }
         }
-
-        // Print("Chart: ", current_chart.timeframe);
-        // Print("            Strong: ", current_chart.strongest_currency().name);
-        // Print("              Weak: ", current_chart.weakest_currency().name);
     }
 
     return(0);

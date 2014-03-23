@@ -1,6 +1,6 @@
 #property copyright "Ricardo Franco"
 #property link      "ricardo.krieg@gmail.com"
-
+#property strict
 #property indicator_chart_window
 
 #define UPPER_BAND 1
@@ -16,10 +16,11 @@
 //------------------------------------------------------------------------------
 
 extern string Font = "Arial";
-extern int FontSize = 20;
+extern int FontSize = 16;
 extern int Corner = 0;
 extern int DistanceX = 20;
 extern int DistanceY = 20;
+extern int PaddingY = 4;
 
 //------------------------------------------------------------------------------
 
@@ -28,15 +29,19 @@ class Pair {
       Pair(int i, string n) {
          this.index = i;
          this.name = n;
+         this.highlighted = false;
          this.point_value = this.calculate_point_value();
 
          this.label_name = StringConcatenate(NAME, this.name);
          this.label_tma = StringConcatenate(this.label_name, "TMA");
          this.label_tma_slope = StringConcatenate(this.label_name, "SLOPE");
          this.label_tma_highest_slope = StringConcatenate(this.label_name, "HIGHESTSLOPE");
+         this.label_spread = StringConcatenate(this.label_name, "SPREAD");
       }
 
       void update(void) {
+         this.spread = SymbolInfoInteger(this.name, SYMBOL_SPREAD);
+
          this.update_ichimoku();
          this.update_tma();
          this.update_tma_status();
@@ -46,6 +51,8 @@ class Pair {
 
       void draw(void) {
          if (!this.create_labels()) return;
+
+         ObjectSetString(0, this.label_spread, OBJPROP_TEXT, IntegerToString(this.spread, 2));
 
          this.check_tma_above_cloud();
          this.check_tma_below_cloud();
@@ -158,6 +165,10 @@ class Pair {
          this.tma_highest_slope = MathMax(this.tma_slope, this.tma_highest_slope);
       }
 
+      void check_highlighted(void) {
+         this.highlighted = false;
+      }
+
       double calculate_point_value(void) {
          if (MarketInfo(this.name, MODE_POINT) == 0.00001) return(10000);
          if (MarketInfo(this.name, MODE_POINT) == 0.001) return(100);
@@ -173,7 +184,7 @@ class Pair {
                ObjectSetInteger(0, this.label_name, OBJPROP_COLOR, clrWhite);
                ObjectSetInteger(0, this.label_name, OBJPROP_CORNER, Corner);
                ObjectSetInteger(0, this.label_name, OBJPROP_XDISTANCE, DistanceX);
-               ObjectSetInteger(0, this.label_name, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_name, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+PaddingY));
                ObjectSetInteger(0, this.label_name, OBJPROP_SELECTABLE, false);
             } else {
                Print("Error ObjectCreate: ", GetLastError());
@@ -189,7 +200,7 @@ class Pair {
                ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, clrGray);
                ObjectSetInteger(0, this.label_tma, OBJPROP_CORNER, Corner);
                ObjectSetInteger(0, this.label_tma, OBJPROP_XDISTANCE, DistanceX+FontSize*6);
-               ObjectSetInteger(0, this.label_tma, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_tma, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+PaddingY));
                ObjectSetInteger(0, this.label_tma, OBJPROP_SELECTABLE, false);
             } else {
                Print("Error ObjectCreate: ", GetLastError());
@@ -204,7 +215,7 @@ class Pair {
                ObjectSetString(0, this.label_tma_slope, OBJPROP_TEXT, "--");
                ObjectSetInteger(0, this.label_tma_slope, OBJPROP_CORNER, Corner);
                ObjectSetInteger(0, this.label_tma_slope, OBJPROP_XDISTANCE, DistanceX+FontSize*9);
-               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_tma_slope, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+PaddingY));
                ObjectSetInteger(0, this.label_tma_slope, OBJPROP_SELECTABLE, false);
             } else {
                Print("Error ObjectCreate: ", GetLastError());
@@ -219,11 +230,26 @@ class Pair {
                ObjectSetString(0, this.label_tma_highest_slope, OBJPROP_TEXT, "--");
                ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_CORNER, Corner);
                ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_XDISTANCE, DistanceX+FontSize*12);
-               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+2));
+               ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+PaddingY));
                ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_SELECTABLE, false);
             } else {
                Print("Error ObjectCreate: ", GetLastError());
                return(false);
+            }
+         }
+
+         if (ObjectFind(0, this.label_spread) < 0) {
+            if (ObjectCreate(0, this.label_spread, OBJ_LABEL, 0, 0, 0)) {
+                ObjectSetString(0, this.label_spread, OBJPROP_FONT, Font);
+                ObjectSetInteger(0, this.label_spread, OBJPROP_FONTSIZE, FontSize);
+                ObjectSetString(0, this.label_spread, OBJPROP_TEXT, "--");
+                ObjectSetInteger(0, this.label_spread, OBJPROP_COLOR, clrWhite);
+                ObjectSetInteger(0, this.label_spread, OBJPROP_XDISTANCE, DistanceX+FontSize*15);
+                ObjectSetInteger(0, this.label_spread, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+PaddingY));
+                ObjectSetInteger(0, this.label_spread, OBJPROP_SELECTABLE, false);
+            } else {
+                Print("Error ObjectCreate: ", GetLastError());
+                return(false);
             }
          }
 
@@ -232,6 +258,7 @@ class Pair {
 
       int index;
       string name;
+      bool highlighted;
 
       double tma_slope;
       double tma_highest_slope;
@@ -246,12 +273,15 @@ class Pair {
       double tma_upper_band;
       double tma_lower_band;
 
+      long spread;
+
       double point_value;
 
       string label_name;
       string label_tma;
       string label_tma_slope;
       string label_tma_highest_slope;
+      string label_spread;
 };
 
 //------------------------------------------------------------------------------
