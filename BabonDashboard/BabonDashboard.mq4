@@ -15,12 +15,18 @@
 
 //------------------------------------------------------------------------------
 
+extern int SpreadThreshold = 10;
 extern string Font = "Arial";
 extern int FontSize = 16;
 extern int Corner = 0;
 extern int DistanceX = 20;
 extern int DistanceY = 20;
 extern int PaddingY = 4;
+
+//------------------------------------------------------------------------------
+
+color SpreadColor = clrWhite;
+color BadSpreadColor = clrRed;
 
 //------------------------------------------------------------------------------
 
@@ -40,7 +46,7 @@ class Pair {
       }
 
       void update(void) {
-         this.spread = SymbolInfoInteger(this.name, SYMBOL_SPREAD);
+         this.update_spread();
 
          this.update_ichimoku();
          this.update_tma();
@@ -52,10 +58,14 @@ class Pair {
       void draw(void) {
          if (!this.create_labels()) return;
 
-         ObjectSetString(0, this.label_spread, OBJPROP_TEXT, IntegerToString(this.spread, 2));
+         this.draw_spread();
 
          this.check_tma_above_cloud();
          this.check_tma_below_cloud();
+      }
+
+      void update_spread(void) {
+         this.spread = SymbolInfoInteger(this.name, SYMBOL_SPREAD);
       }
 
       void update_ichimoku(void) {
@@ -93,6 +103,16 @@ class Pair {
             this.tma_slope = 0;
             this.tma_highest_slope = 0;
          }
+      }
+
+      void draw_spread(void) {
+         if (this.spread <= SpreadThreshold) {
+            ObjectSetInteger(0, this.label_spread, OBJPROP_COLOR, SpreadColor);
+         } else {
+            ObjectSetInteger(0, this.label_spread, OBJPROP_COLOR, BadSpreadColor);
+         }
+
+         ObjectSetString(0, this.label_spread, OBJPROP_TEXT, IntegerToString(this.spread, 2));
       }
 
       void check_tma_above_cloud(void) {
@@ -243,7 +263,7 @@ class Pair {
                 ObjectSetString(0, this.label_spread, OBJPROP_FONT, Font);
                 ObjectSetInteger(0, this.label_spread, OBJPROP_FONTSIZE, FontSize);
                 ObjectSetString(0, this.label_spread, OBJPROP_TEXT, "--");
-                ObjectSetInteger(0, this.label_spread, OBJPROP_COLOR, clrWhite);
+                ObjectSetInteger(0, this.label_spread, OBJPROP_COLOR, SpreadColor);
                 ObjectSetInteger(0, this.label_spread, OBJPROP_XDISTANCE, DistanceX+FontSize*15);
                 ObjectSetInteger(0, this.label_spread, OBJPROP_YDISTANCE, DistanceY+this.index*(FontSize+PaddingY));
                 ObjectSetInteger(0, this.label_spread, OBJPROP_SELECTABLE, false);
