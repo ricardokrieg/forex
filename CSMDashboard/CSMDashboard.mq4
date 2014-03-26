@@ -3,7 +3,7 @@
 #property strict
 #property indicator_chart_window
 
-#define NAME "BabonDashboard"
+#define NAME "CSMDashboard"
 
 //------------------------------------------------------------------------------
 
@@ -11,9 +11,9 @@ extern int MA_Method = 2;
 extern int Price = 3;
 
 extern bool Enable_M1 = true;
-extern bool Enable_M5 = false;
-extern bool Enable_M15 = false;
-extern bool Enable_M30 = false;
+extern bool Enable_M5 = true;
+extern bool Enable_M15 = true;
+extern bool Enable_M30 = true;
 extern bool Enable_H1 = true;
 extern bool Enable_H4 = false;
 extern bool Enable_D1 = false;
@@ -24,10 +24,10 @@ extern bool USD = true;
 extern bool EUR = true;
 extern bool GBP = true;
 extern bool CHF = true;
-extern bool JPY = false;
-extern bool AUD = false;
-extern bool CAD = false;
-extern bool NZD = false;
+extern bool JPY = true;
+extern bool AUD = true;
+extern bool CAD = true;
+extern bool NZD = true;
 extern bool USDIX = false;
 extern bool GOLD = false;
 extern bool SILVER = false;
@@ -63,7 +63,7 @@ extern int m5_fast = 3;
 extern int m1_slow = 25;
 extern int m1_fast = 3;
 
-extern int Corner = 0;
+extern int Corner = 1;
 extern int DistanceX = 100;
 extern int DistanceY = 100;
 

@@ -3,9 +3,9 @@
 #property strict
 #property indicator_chart_window
 
+#define CENTER_LINE 0
 #define UPPER_BAND 1
 #define LOWER_BAND 2
-#define CENTER_LINE 0
 
 #define ONCLOUD 0
 #define UP 1
@@ -15,6 +15,7 @@
 
 //------------------------------------------------------------------------------
 
+extern int SlopeBars = 20;
 extern int SpreadThreshold = 10;
 extern string Font = "Arial";
 extern int FontSize = 16;
@@ -60,8 +61,19 @@ class Pair {
 
          this.draw_spread();
 
-         this.check_tma_above_cloud();
-         this.check_tma_below_cloud();
+         bool on_cloud = true;
+
+         if (this.check_tma_above_cloud()) on_cloud = false;
+         if (this.check_tma_below_cloud()) on_cloud = false;
+
+         if (on_cloud) {
+            ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(232));
+            ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, clrGray);
+            ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, clrGray);
+            ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, clrGray);
+            ObjectSetString(0, this.label_tma_slope, OBJPROP_TEXT, "--");
+            ObjectSetString(0, this.label_tma_highest_slope, OBJPROP_TEXT, "--");
+         }
       }
 
       void update_spread(void) {
@@ -115,7 +127,7 @@ class Pair {
          ObjectSetString(0, this.label_spread, OBJPROP_TEXT, IntegerToString(this.spread, 2));
       }
 
-      void check_tma_above_cloud(void) {
+      bool check_tma_above_cloud(void) {
          if (this.center_line_status == UP && this.upper_band_status == UP) {
             this.update_tma_slope(1);
 
@@ -133,10 +145,14 @@ class Pair {
                ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, Orange);
                ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, DarkGoldenrod);
             }
+
+            return true;
          }
+
+         return false;
       }
 
-      void check_tma_below_cloud(void) {
+      bool check_tma_below_cloud(void) {
          if (this.center_line_status == DOWN && this.lower_band_status == DOWN) {
             this.update_tma_slope(2);
 
@@ -154,7 +170,11 @@ class Pair {
                ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, Orange);
                ObjectSetInteger(0, this.label_tma_highest_slope, OBJPROP_COLOR, DarkGoldenrod);
             }
+
+            return true;
          }
+
+         return false;
       }
 
       void update_tma_slope(int direction) {
@@ -168,17 +188,17 @@ class Pair {
             ichimoku_senkou_b_for_angle = iIchimoku(this.name, PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANB, shift);
             tma_center_line_for_angle = iCustom(this.name, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, CENTER_LINE, shift);
 
-            // UP
-            if (direction == 1) {
-               if (tma_center_line_for_angle < ichimoku_senkou_a_for_angle || tma_center_line_for_angle < ichimoku_senkou_b_for_angle)
-                  break;
-            // DOWN
-            } else if (direction == 2) {
-               if (tma_center_line_for_angle > ichimoku_senkou_a_for_angle || tma_center_line_for_angle > ichimoku_senkou_b_for_angle)
-                  break;
-            }
+            // // UP
+            // if (direction == 1) {
+            //    if (tma_center_line_for_angle < ichimoku_senkou_a_for_angle || tma_center_line_for_angle < ichimoku_senkou_b_for_angle)
+            //       break;
+            // // DOWN
+            // } else if (direction == 2) {
+            //    if (tma_center_line_for_angle > ichimoku_senkou_a_for_angle || tma_center_line_for_angle > ichimoku_senkou_b_for_angle)
+            //       break;
+            // }
 
-            shift++;
+            if (shift++ >= SlopeBars) break;
          }
 
          this.tma_slope = MathAbs((this.tma_center_line-tma_center_line_for_angle) / shift);
