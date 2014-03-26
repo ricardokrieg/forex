@@ -1,8 +1,15 @@
+#!/home/ricardo/.rbenv/shims/ruby
+
+if ARGV.size < 3
+    puts "USAGE: forex_profit_calculator INITIAL_BALANCE DAILY_PERCENTAGE MONTHS [MONTHLY_INVESTIMENT]"
+    exit 0
+end
+
 require 'colorize'
 
 initial_balance = ARGV[0].to_f
 daily_percentage = ARGV[1].to_f
-years = ARGV[2].to_i
+months = ARGV[2].to_i
 monthly_investiment = ARGV[3].to_f || 0.0
 
 balance = initial_balance
@@ -22,35 +29,31 @@ def to_real(value)
     "R$ #{final_reals.reverse},#{cents}"
 end
 
-years.times do |year|
-    puts "Year #{year+1}".red
+months.times do |month|
+    puts "Month #{month+1}".red
     puts "Balance: #{to_real(balance)}".white
 
-    12.times do |month|
-        puts "\tMonth #{month+1}".yellow
+    balance += monthly_investiment
 
-        balance += monthly_investiment
+    20.times do |day|
+        daily_profit = balance * (daily_percentage/100)
+        parcial_profit += daily_profit
 
-        20.times do |day|
-            daily_profit = balance * (daily_percentage/100)
-            parcial_profit += daily_profit
+        print "\t(#{"%.02f" % lot_size})\t"
 
-            print "\t(#{"%.02f" % lot_size})\t"
+        if (balance+parcial_profit)*(leverage/100000) - lot_size >= 0.01
+            balance += parcial_profit
+            parcial_profit = 0.0
 
-            if (balance+parcial_profit)*(leverage/100000) - lot_size >= 0.01
-                balance += parcial_profit
-                parcial_profit = 0.0
-
-                lot_size = balance*leverage/100000
-            end
-
-            puts "Final Balance: #{to_real(balance)}"
+            lot_size = balance*leverage/100000
         end
+
+        puts "Final Balance: #{to_real(balance)}"
     end
 end
 
 puts "Initial Balance: #{to_real(initial_balance)}".white
 puts "Daily Percentage: #{"%.02f" % daily_percentage}%".white
-puts "Years: #{years}".white
+puts "Months: #{months}".white
 puts "Monthly Investiment: #{to_real(monthly_investiment)}".white
 puts "Final Balance: #{to_real(balance)}".white
