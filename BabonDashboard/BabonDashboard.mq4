@@ -68,6 +68,7 @@ class Pair {
          if (this.check_tma_below_cloud()) on_cloud = false;
 
          if (on_cloud) {
+            ObjectSetInteger(0, this.label_star, OBJPROP_COLOR, clrBlack);
             ObjectSetString(0, this.label_tma, OBJPROP_TEXT, CharToStr(232));
             ObjectSetInteger(0, this.label_tma, OBJPROP_COLOR, clrGray);
             ObjectSetInteger(0, this.label_tma_slope, OBJPROP_COLOR, clrGray);
