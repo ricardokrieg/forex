@@ -10,8 +10,9 @@
 #define DOWN 2
 
 extern double LotSize = 0.1;
-extern int StopLoss = 3;
-extern int TakeProfit = 8;
+extern int StopLoss = 5;
+extern int TakeProfit = 5;
+extern int BackBars = 20;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -22,12 +23,11 @@ class Manager {
             this.point_value = this.calculate_point_value();
 
             this.status = -1;
-            this.last_status = -1;
         }
 
         void update(void) {
             this.update_ichimoku();
-            this.update_tma();
+            this.update_status();
 
             Print("STATUS = ", this.status);
         }
@@ -37,25 +37,46 @@ class Manager {
             this.ichimoku_senkou_b = iIchimoku(Symbol(), PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANB, 0);
         }
 
-        void update_tma(void) {
-            this.tma_center_line = iCustom(Symbol(), PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, 0, 0);
-
-            this.last_status = this.status;
-
+        void update_status(void) {
             this.status = ONCLOUD;
-            if (this.tma_center_line > this.ichimoku_senkou_a && this.tma_center_line > this.ichimoku_senkou_b) {
+            if (Price > this.ichimoku_senkou_a && Price > this.ichimoku_senkou_b) {
                 this.status = UP;
-                if (this.last_status == -1) this.last_status = UP;
-            } else if (this.tma_center_line < this.ichimoku_senkou_a && this.tma_center_line < this.ichimoku_senkou_b) {
+            } else if (Price < this.ichimoku_senkou_a && Price < this.ichimoku_senkou_b) {
                 this.status = DOWN;
-                if (this.last_status == -1) this.last_status = DOWN;
             }
 
-            if (this.status != this.last_status) {
-                this.open_trade();
+            if (this.status == UP || this.status == DOWN) {
+                int shift = 1;
+                double ichimoku_senkou_a = 0;
+                double ichimoku_senkou_b = 0;
+                double low_prices, high_prices;
+
+                CopyLow(Symbol(), PERIOD_M1, 0, BackBars, low_prices);
+                CopyHigh(Symbol(), PERIOD_M1, 0, BackBars, high_prices);
+                ArraySetAsSeries(low_prices, true);
+                ArraySetAsSeries(high_prices, true);
+
+                while (true) {
+                    ichimoku_senkou_a = iIchimoku(Symbol(), PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANA, shift);
+                    ichimoku_senkou_b = iIchimoku(Symbol(), PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANB, shift);
+
+                    if (this.status == UP) {
+                        if (low_prices[shift] < ichimoku_senkou_a || price_for_angle < ichimoku_senkou_b)
+                            bad_candles++;
+                        else
+                            good_candles++;
+                    } else if (this.status == DOWN) {
+                       if (price_for_angle > ichimoku_senkou_a || price_for_angle > ichimoku_senkou_b)
+                          break;
+                    }
+
+                    if (shift++ >= BackBars) break;
+                }
             }
 
-            this.last_status = this.status;
+            // if (this.status != this.last_status) {
+            //     this.open_trade();
+            // }
         }
 
         void open_trade(void) {
@@ -108,9 +129,7 @@ class Manager {
 
         double ichimoku_senkou_a;
         double ichimoku_senkou_b;
-        double tma_center_line;
         int status;
-        int last_status;
 };
 
 //------------------------------------------------------------------------------
