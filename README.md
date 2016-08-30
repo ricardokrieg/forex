@@ -1,4 +1,3 @@
-
 ```
 #!c++
 
@@ -18,7 +17,7 @@
 #define DOWN 2
 
 extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, GBPCHF,";
-extern string MaxBarsToLeft = 30;
+extern int MaxBarsToLeft = 30;
 extern string VisualSettings = "Visual Settings";
 extern int IconNeutral = 232;
 extern color ColorNeutral = Gray;
