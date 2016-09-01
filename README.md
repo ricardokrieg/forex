@@ -258,7 +258,7 @@ void calculate_tma_angle_using_tma_slope_true(string pair, int index) {
    ObjectSetText(object_name("TMA-Slope", pair), DoubleToStr(tma_slope_value, 2));
    ObjectSetText(object_name("TMA-SlopeText", pair), tma_slope_direction);
    
-   printf("TMA Slope (%d)(%s): %.2f", tma_slope_buffer, tma_slope_direction, tma_slope_value);
+   //printf("TMA Slope (%d)(%s): %.2f", tma_slope_buffer, tma_slope_direction, tma_slope_value);
 }
 
 void create_labels(string pair, int index) {
