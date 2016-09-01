@@ -17,6 +17,28 @@
 #define DOWN 2
 
 #define TMA_SLOPE_TRUE_BUFFER 6
+#define PARAM_01 ""
+#define PARAM_02 1
+#define PARAM_03 5
+#define PARAM_04 42
+#define PARAM_05 "Verdana"
+#define PARAM_06 12
+#define PARAM_07 3
+#define PARAM_08 White
+#define PARAM_09 Green
+#define PARAM_10 Red
+#define PARAM_11 20
+#define PARAM_12 0.4
+#define PARAM_13 -0.4
+#define PARAM_14 100
+#define PARAM_15 5
+#define PARAM_16 22
+#define PARAM_17 3
+#define PARAM_18 12
+#define PARAM_19 12
+#define PARAM_20 5
+#define PARAM_21 2
+#define PARAM_22 3
 
 extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, GBPCHF,";
 extern string VisualSettings = "Visual Settings";
@@ -199,12 +221,14 @@ void calculate_tma_angle(string pair, int index) {
 }
 
 void calculate_tma_angle_using_tma_slope_true(string pair, int index) {
-   double tma_slope_value = iCustom(pair, PERIOD_M1, "10.2 TMA slope true 4.30", 1, TMA_SLOPE_TRUE_BUFFER, 0);
+   //double tma_slope_value = iCustom(pair, PERIOD_M1, "10.2 TMA slope true 4.30", 1, TMA_SLOPE_TRUE_BUFFER, 0);
+   double tma_slope_value = tma_slope_true_custom_call(pair, TMA_SLOPE_TRUE_BUFFER);
 
    int tma_slope_buffer = -1;
    
    for (int i=0; i<=5; i++) {
-      double tma_slope_for_buffer = iCustom(pair, PERIOD_M1, "10.2 TMA slope true 4.30", 1, i, 0);
+      //double tma_slope_for_buffer = iCustom(pair, PERIOD_M1, "10.2 TMA slope true 4.30", 1, i, 0);
+      double tma_slope_for_buffer = tma_slope_true_custom_call(pair, i);
       
       if (tma_slope_for_buffer != 0.0) {
          tma_slope_buffer = i;
@@ -215,9 +239,18 @@ void calculate_tma_angle_using_tma_slope_true(string pair, int index) {
    string tma_slope_direction = "Ranging";
    if (tma_slope_buffer == 0 || tma_slope_buffer == 1) {
       tma_slope_direction = "Buy Only";
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_COLOR, ColorUp);
+      ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_COLOR, ColorUp);
    } else if (tma_slope_buffer == 2 || tma_slope_buffer == 3) {
       tma_slope_direction = "Sell Only";
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_COLOR, ColorDown);
+      ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_COLOR, ColorDown);
+   } else {
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_COLOR, ColorNeutral);
+      ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_COLOR, ColorNeutral);
    }
+   
+   ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_COLOR, CLR_NONE);
    
    tma_slope[index] = tma_slope_value;
    tma_slope_text[index] = tma_slope_direction;
@@ -306,5 +339,16 @@ double point_value(string pair) {
    if (MarketInfo(pair, MODE_POINT) == 0.00001) return(10000);
    if (MarketInfo(pair, MODE_POINT) == 0.001) return(100);
    return(MarketInfo(pair, MODE_POINT)*100000);
+}
+
+double tma_slope_true_custom_call(string pair, int buffer) {
+   return iCustom(
+      pair, PERIOD_M1, "10.2 TMA slope true 4.30",
+      PARAM_01, PARAM_02, PARAM_03, PARAM_04, PARAM_05, 
+      PARAM_06, PARAM_07, PARAM_08, PARAM_09, PARAM_10, 
+      PARAM_11, PARAM_12, PARAM_13, PARAM_14, PARAM_15, 
+      PARAM_16, PARAM_17, PARAM_18, PARAM_19, PARAM_20, 
+      PARAM_21, PARAM_22,
+      buffer, 0);
 }
 ```
