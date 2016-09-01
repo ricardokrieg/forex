@@ -16,8 +16,9 @@
 #define UP 1
 #define DOWN 2
 
+#define TMA_SLOPE_TRUE_BUFFER 6
+
 extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, GBPCHF,";
-//extern int MaxBarsToLeft = 30;
 extern string VisualSettings = "Visual Settings";
 extern int IconNeutral = 232;
 extern color ColorNeutral = Gray;
@@ -37,8 +38,8 @@ extern int DistanceY = 20;
 
 string pairs[20];
 bool singlePair = false;
-double tma_speed[20];
-double tma_higher_speed[20];
+double tma_slope[20];
+string tma_slope_text[20];
 
 int center_line_status[20];
 int upper_band_status[20];
@@ -53,8 +54,7 @@ double tma_lower_band = 0;
 int init() {
    extract_pairs();
 
-   ArrayInitialize(tma_speed, 0);
-   ArrayInitialize(tma_higher_speed, 0);
+   ArrayInitialize(tma_slope, 0);
    ArrayInitialize(center_line_status, 0);
    ArrayInitialize(upper_band_status, 0);
    ArrayInitialize(lower_band_status, 0);
@@ -65,8 +65,8 @@ int init() {
       if (pair == "") break;
 
       ObjectDelete(object_name("TMA", pair));
-      ObjectDelete(object_name("TMA-Speed", pair));
-      ObjectDelete(object_name("TMA-HigherSpeed", pair));
+      ObjectDelete(object_name("TMA-Slope", pair));
+      ObjectDelete(object_name("TMA-SlopeText", pair));
       ObjectDelete(object_name("Pair", pair));
 
       pairs_index++;
@@ -96,6 +96,9 @@ int start() {
 
       calculate_tma_above_cloud(pair, pairs_index);
       calculate_tma_below_cloud(pair, pairs_index);
+      
+      // calculate_tma_angle(pair, pairs_index);
+      calculate_tma_angle_using_tma_slope_true(pair, pairs_index);
 
       pairs_index++;
    }
@@ -135,57 +138,21 @@ void calculate_tma_status(int index) {
       center_line_status[index] = DOWN;
    } else {
       center_line_status[index] = ONCLOUD;
-      tma_speed[index] = 0;
-      tma_higher_speed[index] = 0;
+      tma_slope[index] = 0;
+      tma_slope_text[index] = "-";
    }
 }
 
 void calculate_tma_above_cloud(string pair, int index) {
    if (center_line_status[index] == UP && upper_band_status[index] == UP) {
       int shift = 1;
-//      bool valid_pattern = false;
-
-      // this block is used to calculate TMA angle (here called speed)
-      while (true) { 
-         double ichimoku_senkou_a_for_angle = iIchimoku(pair, PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANA, shift);
-         double ichimoku_senkou_b_for_angle = iIchimoku(pair, PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANB, shift);
-         double tma_center_line_for_angle = iCustom(pair, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, CENTER_LINE, shift);
-
-         // this is the time (shift) where center line is inside cloud
-         // the speed/angle is calculated based on this time (of course this need to be changed)
-         if (tma_center_line_for_angle < ichimoku_senkou_a_for_angle || tma_center_line_for_angle < ichimoku_senkou_b_for_angle) {
-            tma_speed[index] = MathAbs((tma_center_line-tma_center_line_for_angle) / shift);
-            tma_higher_speed[index] = MathMax(tma_speed[index], tma_higher_speed[index]);
-
-            // here we count how many bars have passed since the center line was inside the cloud
-            // this is used to determine if the TMA channel is crossing the cloud
-            // the limit is 30 bars.
-            // that means if the channel was not inside the cloud 30 bars ago, then its not a cross, so the pattern is invalid
-//            if (shift <= MaxBarsToLeft) {
-//               valid_pattern = true;
-//            }
-
-            break;
-         }
-
-         shift++;
-      }
-
-//      if (!valid_pattern) return;
-
-      ObjectSetText(object_name("TMA-Speed", pair), DoubleToStr(tma_speed[index]*point_value(pair)*100, 0));
-      ObjectSetText(object_name("TMA-HigherSpeed", pair), DoubleToStr(tma_higher_speed[index]*point_value(pair)*100, 0));
 
       if (lower_band_status[index] == UP) {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconUp));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorUp);
-         ObjectSet(object_name("TMA-Speed", pair), OBJPROP_COLOR, ColorUp);
-         ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_COLOR, ColorUp);
       } else {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconAnticipateUp));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorAnticipateUp);
-         ObjectSet(object_name("TMA-Speed", pair), OBJPROP_COLOR, ColorAnticipateUp);
-         ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_COLOR, ColorAnticipateUp);
       }
    }
 }
@@ -193,44 +160,72 @@ void calculate_tma_above_cloud(string pair, int index) {
 void calculate_tma_below_cloud(string pair, int index) {
    if (center_line_status[index] == DOWN && lower_band_status[index] == DOWN) {
       int shift = 1;
-//      bool valid_pattern = false;
-
-      while (true) { 
-         double ichimoku_senkou_a_for_angle = iIchimoku(pair, PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANA, shift);
-         double ichimoku_senkou_b_for_angle = iIchimoku(pair, PERIOD_M1, 9, 26, 52, MODE_SENKOUSPANB, shift);
-         double tma_center_line_for_angle = iCustom(pair, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, CENTER_LINE, shift);
-
-         if (tma_center_line_for_angle > ichimoku_senkou_a_for_angle || tma_center_line_for_angle > ichimoku_senkou_b_for_angle) {
-            tma_speed[index] = MathAbs((tma_center_line-tma_center_line_for_angle) / shift);
-            tma_higher_speed[index] = MathMax(tma_speed[index], tma_higher_speed[index]);
-
-//            if (shift <= MaxBarsToLeft) {
-//               valid_pattern = true;
-//            }
-
-            break;
-         }
-
-         shift++;
-      }
-
-//      if (!valid_pattern) return;
-
-      ObjectSetText(object_name("TMA-Speed", pair), DoubleToStr(tma_speed[index]*point_value(pair)*100, 0));
-      ObjectSetText(object_name("TMA-HigherSpeed", pair), DoubleToStr(tma_higher_speed[index]*point_value(pair)*100, 0));
-
+      
       if (upper_band_status[index] == DOWN) {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconDown));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorDown);
-         ObjectSet(object_name("TMA-Speed", pair), OBJPROP_COLOR, ColorDown);
-         ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_COLOR, ColorDown);
       } else {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconAnticipateDown));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorAnticipateDown);
-         ObjectSet(object_name("TMA-Speed", pair), OBJPROP_COLOR, ColorAnticipateDown);
-         ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_COLOR, ColorAnticipateDown);
       }
    }
+}
+
+void calculate_tma_angle(string pair, int index) {
+   int shift = 1;
+   double angle, price1, price2 = 0;
+   int angle_shift = 15;
+   double screen_factor = 3.0;
+   double pips_per_screen = 0.0012600;
+   double bars_per_screen = 207;
+
+   double tma_center_line_for_angle = iCustom(pair, PERIOD_M1, "TMA", "M1", 20, PRICE_CLOSE, 2.0, 100, true, CENTER_LINE, angle_shift);
+   price1 = tma_center_line;
+   price2 = tma_center_line_for_angle;
+      
+   if (price1 != price2 && WindowPriceMax() != WindowPriceMin() && WindowBarsPerChart() != 0) {
+      printf("%f %f %d # %f %f %d", price1, price2, angle_shift, WindowPriceMax(), WindowPriceMin(), WindowBarsPerChart());
+      
+      pips_per_screen = WindowPriceMax() - WindowPriceMin();
+      
+      angle = MathArctan(MathTan(
+         ((price1-price2)/(pips_per_screen*screen_factor))
+         /
+         (angle_shift/((double)bars_per_screen))
+      )) * 180/3.14;
+            
+      printf("ANGLE = %f", angle);
+   }
+}
+
+void calculate_tma_angle_using_tma_slope_true(string pair, int index) {
+   double tma_slope_value = iCustom(pair, PERIOD_M1, "10.2 TMA slope true 4.30", 1, TMA_SLOPE_TRUE_BUFFER, 0);
+
+   int tma_slope_buffer = -1;
+   
+   for (int i=0; i<=5; i++) {
+      double tma_slope_for_buffer = iCustom(pair, PERIOD_M1, "10.2 TMA slope true 4.30", 1, i, 0);
+      
+      if (tma_slope_for_buffer != 0.0) {
+         tma_slope_buffer = i;
+         break;
+      }
+   }
+   
+   string tma_slope_direction = "Ranging";
+   if (tma_slope_buffer == 0 || tma_slope_buffer == 1) {
+      tma_slope_direction = "Buy Only";
+   } else if (tma_slope_buffer == 2 || tma_slope_buffer == 3) {
+      tma_slope_direction = "Sell Only";
+   }
+   
+   tma_slope[index] = tma_slope_value;
+   tma_slope_text[index] = tma_slope_direction;
+   
+   ObjectSetText(object_name("TMA-Slope", pair), DoubleToStr(tma_slope_value, 2));
+   ObjectSetText(object_name("TMA-SlopeText", pair), tma_slope_direction);
+   
+   printf("TMA Slope (%d)(%s): %.2f", tma_slope_buffer, tma_slope_direction, tma_slope_value);
 }
 
 void create_labels(string pair, int index) {
@@ -255,24 +250,24 @@ void create_labels(string pair, int index) {
       ObjectSet(object_name("TMA", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
 
-   if (ObjectFind(object_name("TMA-Speed", pair)) >= 0) {
-      ObjectSetText(object_name("TMA-Speed", pair), "");
+   if (ObjectFind(object_name("TMA-Slope", pair)) >= 0) {
+      ObjectSetText(object_name("TMA-Slope", pair), "");
    } else {
-      ObjectCreate(object_name("TMA-Speed", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA-Speed", pair), "", FontSize);
-      ObjectSet(object_name("TMA-Speed", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA-Speed", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*9);
-      ObjectSet(object_name("TMA-Speed", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
+      ObjectCreate(object_name("TMA-Slope", pair), OBJ_LABEL, 0, 0, 0);
+      ObjectSetText(object_name("TMA-Slope", pair), "", FontSize);
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_CORNER, Corner);
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*9);
+      ObjectSet(object_name("TMA-Slope", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
 
-   if (ObjectFind(object_name("TMA-HigherSpeed", pair)) >= 0) {
-      ObjectSetText(object_name("TMA-HigherSpeed", pair), "");
+   if (ObjectFind(object_name("TMA-SlopeText", pair)) >= 0) {
+      ObjectSetText(object_name("TMA-SlopeText", pair), "");
    } else {
-      ObjectCreate(object_name("TMA-HigherSpeed", pair), OBJ_LABEL, 0, 0, 0);
-      ObjectSetText(object_name("TMA-HigherSpeed", pair), "", FontSize);
-      ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_CORNER, Corner);
-      ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*11);
-      ObjectSet(object_name("TMA-HigherSpeed", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
+      ObjectCreate(object_name("TMA-SlopeText", pair), OBJ_LABEL, 0, 0, 0);
+      ObjectSetText(object_name("TMA-SlopeText", pair), "", FontSize);
+      ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_CORNER, Corner);
+      ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_XDISTANCE, DistanceX+FontSize*13);
+      ObjectSet(object_name("TMA-SlopeText", pair), OBJPROP_YDISTANCE, DistanceY+(FontSize+15)*index);
    }
 }
 
