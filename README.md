@@ -1,8 +1,6 @@
-```
-#!c++
-
 #property copyright "Ricardo Franco"
 #property link      "ricardo.krieg@gmail.com"
+#property version   "1.1"
 
 #property indicator_chart_window
 
@@ -12,9 +10,11 @@
 #define LOWER_BAND 2
 #define CENTER_LINE 0
 
-#define ONCLOUD 0
-#define UP 1
-#define DOWN 2
+#define ONCLOUD         0
+#define UP              1
+#define DOWN            2
+#define ANTICIPATE_UP   3
+#define ANTICIPATE_DOWN 4
 
 #define TMA_SLOPE_TRUE_BUFFER 6
 #define PARAM_01 ""
@@ -41,6 +41,9 @@
 #define PARAM_22 3
 
 extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, GBPCHF,";
+extern string AlertSettings = "Alert Settings";
+extern bool EnableAlert = true;
+extern bool EnableAnticipateAlert = true;
 extern string VisualSettings = "Visual Settings";
 extern int IconNeutral = 232;
 extern color ColorNeutral = Gray;
@@ -67,6 +70,9 @@ int center_line_status[20];
 int upper_band_status[20];
 int lower_band_status[20];
 
+int previous_tma_status[20] = {-1};
+datetime last_alert[20] = {-1};
+
 double ichimoku_senkou_a = 0;
 double ichimoku_senkou_b = 0;
 double tma_center_line = 0;
@@ -90,6 +96,8 @@ int init() {
       ObjectDelete(object_name("TMA-Slope", pair));
       ObjectDelete(object_name("TMA-SlopeText", pair));
       ObjectDelete(object_name("Pair", pair));
+      
+      last_alert[pairs_index] = TimeCurrent();
 
       pairs_index++;
    }
@@ -172,9 +180,15 @@ void calculate_tma_above_cloud(string pair, int index) {
       if (lower_band_status[index] == UP) {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconUp));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorUp);
+         
+         call_alert_up(pair, index);
+         previous_tma_status[index] = UP;
       } else {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconAnticipateUp));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorAnticipateUp);
+         
+         call_alert_anticipate_up(pair, index);
+         previous_tma_status[index] = ANTICIPATE_UP;
       }
    }
 }
@@ -186,9 +200,15 @@ void calculate_tma_below_cloud(string pair, int index) {
       if (upper_band_status[index] == DOWN) {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconDown));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorDown);
+         
+         call_alert_down(pair, index);
+         previous_tma_status[index] = DOWN;
       } else {
          ObjectSetText(object_name("TMA", pair), CharToStr(IconAnticipateDown));
          ObjectSet(object_name("TMA", pair), OBJPROP_COLOR, ColorAnticipateDown);
+         
+         call_alert_anticipate_down(pair, index);
+         previous_tma_status[index] = ANTICIPATE_DOWN;
       }
    }
 }
@@ -351,4 +371,55 @@ double tma_slope_true_custom_call(string pair, int buffer) {
       PARAM_21, PARAM_22,
       buffer, 0);
 }
-```
+
+void call_alert_up(string pair, int index) {
+   //printf("call_alert_up [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
+
+   if (previous_tma_status[index] != UP) {
+      if (valid_alert(index)) {
+         call_alert(pair, "UP");
+      }
+   }
+}
+
+void call_alert_anticipate_up(string pair, int index) {
+   //printf("call_alert_anticipate_up [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
+   
+   if (previous_tma_status[index] != UP && previous_tma_status[index] != ANTICIPATE_UP) {
+      if (valid_alert(index)) {
+         call_alert(pair, "ANTICIPATE_UP");
+      }
+   }
+}
+
+void call_alert_down(string pair, int index) {
+   //printf("call_alert_down [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
+
+   if (previous_tma_status[index] != DOWN) {
+      if (valid_alert(index)) {
+         call_alert(pair, "DOWN");
+      }
+   }
+}
+
+void call_alert_anticipate_down(string pair, int index) {
+   //printf("call_alert_anticipate_down [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
+
+   if (previous_tma_status[index] != DOWN && previous_tma_status[index] != ANTICIPATE_DOWN) {
+      if (valid_alert(index)) {
+         call_alert(pair, "ANTICIPATE_DOWN");
+      }
+   }
+}
+
+void call_alert(string pair, string status) {
+   Alert(pair, "    ", status);
+}
+
+int time_diff(int index) {
+   return TimeCurrent() - last_alert[index];
+}
+
+bool valid_alert(int index) {
+   return time_diff(index) >= 120;
+}
