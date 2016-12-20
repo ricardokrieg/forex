@@ -1,6 +1,6 @@
 #property copyright "Ricardo Franco"
 #property link      "ricardo.krieg@gmail.com"
-#property version   "1.1"
+#property version   "1.2"
 
 #property indicator_chart_window
 
@@ -44,6 +44,7 @@ extern string Pairs = "EURJPY, GBPJPY, EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, G
 extern string AlertSettings = "Alert Settings";
 extern bool EnableAlert = true;
 extern bool EnableAnticipateAlert = true;
+extern int AlertIntervalInSeconds = 120;
 extern string VisualSettings = "Visual Settings";
 extern int IconNeutral = 232;
 extern color ColorNeutral = Gray;
@@ -373,46 +374,55 @@ double tma_slope_true_custom_call(string pair, int buffer) {
 }
 
 void call_alert_up(string pair, int index) {
+   if (!EnableAlert) return;
+
    //printf("call_alert_up [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
 
    if (previous_tma_status[index] != UP) {
       if (valid_alert(index)) {
-         call_alert(pair, "UP");
+         call_alert(pair, index, "UP");
       }
    }
 }
 
 void call_alert_anticipate_up(string pair, int index) {
+   if (!EnableAnticipateAlert) return;
+
    //printf("call_alert_anticipate_up [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
    
    if (previous_tma_status[index] != UP && previous_tma_status[index] != ANTICIPATE_UP) {
       if (valid_alert(index)) {
-         call_alert(pair, "ANTICIPATE_UP");
+         call_alert(pair, index, "ANTICIPATE_UP");
       }
    }
 }
 
 void call_alert_down(string pair, int index) {
+   if (!EnableAlert) return;
+
    //printf("call_alert_down [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
 
    if (previous_tma_status[index] != DOWN) {
       if (valid_alert(index)) {
-         call_alert(pair, "DOWN");
+         call_alert(pair, index, "DOWN");
       }
    }
 }
 
 void call_alert_anticipate_down(string pair, int index) {
+   if (!EnableAnticipateAlert) return;
+
    //printf("call_alert_anticipate_down [time_diff=%d][previous=%d]", time_diff(index), previous_tma_status[index]);
 
    if (previous_tma_status[index] != DOWN && previous_tma_status[index] != ANTICIPATE_DOWN) {
       if (valid_alert(index)) {
-         call_alert(pair, "ANTICIPATE_DOWN");
+         call_alert(pair, index, "ANTICIPATE_DOWN");
       }
    }
 }
 
-void call_alert(string pair, string status) {
+void call_alert(string pair, int index, string status) {
+   last_alert[index] = TimeCurrent();
    Alert(pair, "    ", status);
 }
 
@@ -421,5 +431,5 @@ int time_diff(int index) {
 }
 
 bool valid_alert(int index) {
-   return time_diff(index) >= 120;
+   return time_diff(index) >= AlertIntervalInSeconds;
 }
